@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  background: #f6f7fb;
+  color: #171b27;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Subtle background pattern for the platform */
+body {
+  background-image:
+    radial-gradient(
+      circle at 1px 1px,
+      rgba(23, 27, 39, 0.04) 1px,
+      transparent 0
+    );
+  background-size: 24px 24px;
+}
+
+a {
+  color: inherit;
+}
+
+.app-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 100vh;
+}
+
+@media (min-width: 768px) {
+  .app-grid {
+    grid-template-rows: auto 1fr;
+  }
+}
