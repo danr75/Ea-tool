@@ -45,8 +45,10 @@ export function DeleteCapabilityButton({
   return (
     <div className="bg-signal-replace/5 ring-1 ring-signal-replace/30 rounded-lg p-3 space-y-2">
       <div className="text-xs text-ink-700 leading-snug">
-        Permanently delete <span className="font-semibold">{capabilityName}</span>?
-        Relationships and emerging-signal links will lose their reference.
+        Permanently delete{" "}
+        <span className="font-semibold">{capabilityName}</span>? Its
+        relationships, emerging-signal impacts, and any logical or physical
+        components attached to it will be removed too.
       </div>
       <div className="flex items-center gap-1.5">
         <button

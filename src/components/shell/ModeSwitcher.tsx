@@ -33,7 +33,11 @@ export function ModeSwitcher({
   onChange: (v: AppMode) => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-1 p-1 rounded-xl bg-ink-100 border border-ink-200/60">
+    <div
+      role="group"
+      aria-label="Architecture mode"
+      className="flex flex-wrap items-center gap-1 p-1 rounded-xl bg-ink-100 border border-ink-200/60"
+    >
       {modes.map((m) => {
         const active = value === m.id;
         return (
@@ -41,8 +45,9 @@ export function ModeSwitcher({
             key={m.id}
             type="button"
             onClick={() => onChange(m.id)}
+            aria-pressed={active}
             className={[
-              "px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
+              "px-3 py-1.5 rounded-lg text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-900 focus-visible:ring-offset-2",
               active
                 ? "bg-white text-ink-900 shadow-card"
                 : "text-ink-500 hover:text-ink-900",
