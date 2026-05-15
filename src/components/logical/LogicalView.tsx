@@ -11,6 +11,7 @@ import { domainsById } from "@/data/domains";
 import { useArchitectureData } from "@/components/ArchitectureDataProvider";
 import { LogicalGraph } from "./LogicalGraph";
 import { logicalNodeKindMeta } from "./LogicalNode";
+import { LogicalEditor } from "./LogicalEditor";
 
 function partitionFlows(
   flows: LogicalFlow[],
@@ -74,18 +75,6 @@ export function LogicalView({
     componentIds,
   );
 
-  if (components.length === 0) {
-    return (
-      <NoLogicalContent
-        capability={cap}
-        onPick={onPickCapability}
-        onBack={onBackToConceptual}
-        capabilitiesWithLogical={capabilitiesWithLogical}
-        capabilitiesById={capabilitiesById}
-      />
-    );
-  }
-
   const allFlows = [...internal, ...incoming, ...outgoing];
 
   // Bring in cross-capability components so they can render in the graph.
@@ -145,10 +134,26 @@ export function LogicalView({
 
       <Legend />
 
-      <LogicalGraph
-        components={allComponents}
-        flows={allFlows}
-        selectedCapabilityId={capabilityId}
+      {components.length > 0 ? (
+        <LogicalGraph
+          components={allComponents}
+          flows={allFlows}
+          selectedCapabilityId={capabilityId}
+        />
+      ) : (
+        <div className="bg-white rounded-2xl ring-1 ring-dashed ring-ink-200 p-10 text-center">
+          <p className="text-sm text-ink-500">
+            No logical components yet for{" "}
+            <span className="font-medium text-ink-900">{cap.name}</span>. Add
+            one below to start the graph.
+          </p>
+        </div>
+      )}
+
+      <LogicalEditor
+        capabilityId={capabilityId}
+        components={components}
+        flows={logicalFlows}
       />
 
       <CrossCapabilityBridges

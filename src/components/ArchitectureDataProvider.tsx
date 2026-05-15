@@ -37,6 +37,14 @@ export interface ArchitectureData {
   removeCapability: (id: string) => void;
   addRelationship: (r: Relationship) => void;
   removeRelationship: (from: string, to: string, kind: string) => void;
+  addLogicalComponent: (c: LogicalComponent) => void;
+  removeLogicalComponent: (id: string) => void;
+  addLogicalFlow: (f: LogicalFlow) => void;
+  removeLogicalFlow: (from: string, to: string, kind: string) => void;
+  addPhysicalComponent: (c: PhysicalComponent) => void;
+  removePhysicalComponent: (id: string) => void;
+  addPhysicalDependency: (d: PhysicalDependency) => void;
+  removePhysicalDependency: (from: string, to: string, kind: string) => void;
 }
 
 const ArchitectureDataContext = createContext<ArchitectureData | null>(null);
@@ -61,10 +69,16 @@ export function ArchitectureDataProvider({
   const [capabilities, setCapabilities] = useState(initial.capabilities);
   const [relationships, setRelationships] = useState(initial.relationships);
   const [emerging] = useState(initial.emerging);
-  const [logicalComponents] = useState(initial.logicalComponents);
-  const [logicalFlows] = useState(initial.logicalFlows);
-  const [physicalComponents] = useState(initial.physicalComponents);
-  const [physicalDependencies] = useState(initial.physicalDependencies);
+  const [logicalComponents, setLogicalComponents] = useState(
+    initial.logicalComponents,
+  );
+  const [logicalFlows, setLogicalFlows] = useState(initial.logicalFlows);
+  const [physicalComponents, setPhysicalComponents] = useState(
+    initial.physicalComponents,
+  );
+  const [physicalDependencies, setPhysicalDependencies] = useState(
+    initial.physicalDependencies,
+  );
 
   const upsertCapability = useCallback((c: Capability) => {
     setCapabilities((prev) => {
@@ -92,6 +106,58 @@ export function ArchitectureDataProvider({
       setRelationships((prev) =>
         prev.filter(
           (r) => !(r.from === from && r.to === to && r.kind === kind),
+        ),
+      );
+    },
+    [],
+  );
+
+  const addLogicalComponent = useCallback((c: LogicalComponent) => {
+    setLogicalComponents((prev) => [...prev, c]);
+  }, []);
+
+  const removeLogicalComponent = useCallback((id: string) => {
+    setLogicalComponents((prev) => prev.filter((c) => c.id !== id));
+    setLogicalFlows((prev) =>
+      prev.filter((f) => f.from !== id && f.to !== id),
+    );
+  }, []);
+
+  const addLogicalFlow = useCallback((f: LogicalFlow) => {
+    setLogicalFlows((prev) => [...prev, f]);
+  }, []);
+
+  const removeLogicalFlow = useCallback(
+    (from: string, to: string, kind: string) => {
+      setLogicalFlows((prev) =>
+        prev.filter(
+          (f) => !(f.from === from && f.to === to && f.kind === kind),
+        ),
+      );
+    },
+    [],
+  );
+
+  const addPhysicalComponent = useCallback((c: PhysicalComponent) => {
+    setPhysicalComponents((prev) => [...prev, c]);
+  }, []);
+
+  const removePhysicalComponent = useCallback((id: string) => {
+    setPhysicalComponents((prev) => prev.filter((c) => c.id !== id));
+    setPhysicalDependencies((prev) =>
+      prev.filter((d) => d.from !== id && d.to !== id),
+    );
+  }, []);
+
+  const addPhysicalDependency = useCallback((d: PhysicalDependency) => {
+    setPhysicalDependencies((prev) => [...prev, d]);
+  }, []);
+
+  const removePhysicalDependency = useCallback(
+    (from: string, to: string, kind: string) => {
+      setPhysicalDependencies((prev) =>
+        prev.filter(
+          (d) => !(d.from === from && d.to === to && d.kind === kind),
         ),
       );
     },
@@ -132,6 +198,14 @@ export function ArchitectureDataProvider({
       removeCapability,
       addRelationship,
       removeRelationship,
+      addLogicalComponent,
+      removeLogicalComponent,
+      addLogicalFlow,
+      removeLogicalFlow,
+      addPhysicalComponent,
+      removePhysicalComponent,
+      addPhysicalDependency,
+      removePhysicalDependency,
     };
   }, [
     capabilities,
@@ -145,6 +219,14 @@ export function ArchitectureDataProvider({
     removeCapability,
     addRelationship,
     removeRelationship,
+    addLogicalComponent,
+    removeLogicalComponent,
+    addLogicalFlow,
+    removeLogicalFlow,
+    addPhysicalComponent,
+    removePhysicalComponent,
+    addPhysicalDependency,
+    removePhysicalDependency,
   ]);
 
   return (
