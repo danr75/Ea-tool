@@ -2,20 +2,26 @@
 
 import type { Capability, Domain, EmergingCapability } from "@/lib/types";
 import { CapabilityTile } from "./CapabilityTile";
+import type { Overlay } from "@/components/shell/OverlayToggle";
 
 export function DomainColumn({
   domain,
   capabilities,
   selectedId,
   emergingByCapability,
+  overlay,
   onSelect,
 }: {
   domain: Domain;
   capabilities: Capability[];
   selectedId: string | null;
   emergingByCapability: Record<string, EmergingCapability[]>;
+  overlay: Overlay;
   onSelect: (id: string) => void;
 }) {
+  const impactedCount = capabilities.filter(
+    (c) => (emergingByCapability[c.id]?.length ?? 0) > 0,
+  ).length;
   return (
     <section
       className="rounded-2xl bg-white/60 ring-1 ring-ink-100 shadow-card overflow-hidden flex flex-col"
@@ -32,6 +38,11 @@ export function DomainColumn({
           <h3 className="text-sm font-semibold text-ink-900">{domain.name}</h3>
           <span className="ml-auto text-[11px] text-ink-400 font-medium">
             {capabilities.length}
+            {overlay === "emerging" && impactedCount > 0 && (
+              <span className="ml-1.5 text-signal-replace">
+                · {impactedCount} impacted
+              </span>
+            )}
           </span>
         </div>
         <p className="text-[11px] text-ink-500 leading-snug mt-1.5">
@@ -45,6 +56,7 @@ export function DomainColumn({
             capability={c}
             selected={selectedId === c.id}
             emergingImpacts={emergingByCapability[c.id] ?? []}
+            overlay={overlay}
             onClick={() => onSelect(c.id)}
           />
         ))}

@@ -1,19 +1,27 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { AppMode, ViewLevel } from "@/lib/types";
+import { Sparkles } from "lucide-react";
+import type { AppMode, MaturityLevel, ViewLevel } from "@/lib/types";
 import { capabilities } from "@/data/capabilities";
 import { domains } from "@/data/domains";
 import { emergingCapabilities } from "@/data/emerging";
 import { relationships } from "@/data/relationships";
+import { maturityLabel } from "@/lib/format";
 import { ModeSwitcher } from "@/components/shell/ModeSwitcher";
 import { ViewSwitcher } from "@/components/shell/ViewSwitcher";
+import {
+  OverlayToggle,
+  maturityColor,
+  type Overlay,
+} from "@/components/shell/OverlayToggle";
 import { DomainColumn } from "@/components/conceptual/DomainColumn";
 import { CapabilityDetail } from "@/components/conceptual/CapabilityDetail";
 
 export default function ArchitecturePage() {
   const [mode, setMode] = useState<AppMode>("executive");
   const [view, setView] = useState<ViewLevel>("conceptual");
+  const [overlay, setOverlay] = useState<Overlay>("emerging");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const emergingByCapability = useMemo(() => {
@@ -46,6 +54,8 @@ export default function ArchitecturePage() {
     ? emergingByCapability[selected.id] ?? []
     : [];
 
+  const impactedTotal = Object.keys(emergingByCapability).length;
+
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-end gap-6 justify-between">
@@ -57,18 +67,19 @@ export default function ArchitecturePage() {
             Capability landscape
           </h1>
           <p className="text-sm text-ink-500 leading-relaxed">
-            The capabilities that run the enterprise, grouped by domain. Tiles
-            with an amber count are affected by an emerging capability — open
-            one to see what changes.
+            The capabilities that run the enterprise, grouped by domain. Switch
+            the overlay to see which capabilities are most mature, or which are
+            being reshaped by emerging signals.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-end gap-3">
           <ViewSwitcher value={view} onChange={setView} />
           <ModeSwitcher value={mode} onChange={setMode} />
+          <OverlayToggle value={overlay} onChange={setOverlay} />
         </div>
       </header>
 
-      <Legend />
+      <Legend overlay={overlay} impactedTotal={impactedTotal} />
 
       <div className="grid lg:grid-cols-[1fr_360px] gap-6 items-start">
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -79,6 +90,7 @@ export default function ArchitecturePage() {
               capabilities={capsByDomain[d.id] ?? []}
               selectedId={selectedId}
               emergingByCapability={emergingByCapability}
+              overlay={overlay}
               onSelect={setSelectedId}
             />
           ))}
@@ -115,29 +127,71 @@ function EmptyDetail() {
   );
 }
 
-function Legend() {
-  const items: { label: string; cls: string }[] = [
-    { label: "Emerging", cls: "bg-signal-replace" },
-    { label: "Developing", cls: "bg-signal-enhance" },
-    { label: "Established", cls: "bg-signal-new" },
-    { label: "Core", cls: "bg-ink-700" },
-  ];
+function Legend({
+  overlay,
+  impactedTotal,
+}: {
+  overlay: Overlay;
+  impactedTotal: number;
+}) {
+  if (overlay === "maturity") {
+    const levels: MaturityLevel[] = [
+      "emerging",
+      "developing",
+      "established",
+      "core",
+    ];
+    return (
+      <div className="flex flex-wrap items-center gap-4 text-[11px] text-ink-600 bg-white rounded-xl ring-1 ring-ink-100 shadow-card px-4 py-2.5">
+        <span className="uppercase tracking-[0.14em] font-semibold text-ink-400">
+          Maturity overlay
+        </span>
+        {levels.map((l) => (
+          <span key={l} className="inline-flex items-center gap-1.5">
+            <span
+              className="w-3 h-3 rounded-sm"
+              style={{ background: maturityColor[l] }}
+            />
+            <span className="font-medium">{maturityLabel[l]}</span>
+          </span>
+        ))}
+        <span className="ml-auto text-ink-400">
+          Tile rail + tint reflect maturity level.
+        </span>
+      </div>
+    );
+  }
+
+  if (overlay === "emerging") {
+    return (
+      <div className="flex flex-wrap items-center gap-4 text-[11px] text-ink-600 bg-white rounded-xl ring-1 ring-ink-100 shadow-card px-4 py-2.5">
+        <span className="uppercase tracking-[0.14em] font-semibold text-ink-400">
+          Emerging impact overlay
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-1 text-[10px] font-semibold leading-none px-1.5 py-1 rounded-full bg-signal-replace text-white">
+            <Sparkles size={10} strokeWidth={2.5} />
+            N
+          </span>
+          <span className="font-medium">
+            Capabilities being reshaped — count = emerging signals affecting it
+          </span>
+        </span>
+        <span className="ml-auto text-ink-400">
+          {impactedTotal} of {capabilities.length} capabilities impacted
+        </span>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-wrap items-center gap-4 text-[11px] text-ink-500">
+    <div className="flex flex-wrap items-center gap-3 text-[11px] text-ink-500">
       <span className="uppercase tracking-[0.14em] font-medium text-ink-400">
-        Maturity
+        Default view
       </span>
-      {items.map((i) => (
-        <span key={i.label} className="inline-flex items-center gap-1.5">
-          <span className={`w-1.5 h-1.5 rounded-full ${i.cls}`} />
-          {i.label}
-        </span>
-      ))}
-      <span className="inline-flex items-center gap-1.5 ml-2">
-        <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-signal-replace/15 text-signal-replace ring-1 ring-signal-replace/30">
-          3
-        </span>
-        emerging signals affect this capability
+      <span>
+        Coloured rail on each tile = maturity. Pick an overlay to bring it
+        forward.
       </span>
     </div>
   );
