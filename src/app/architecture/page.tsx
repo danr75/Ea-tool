@@ -23,6 +23,7 @@ import { CapabilityDetail } from "@/components/conceptual/CapabilityDetail";
 import { LogicalView } from "@/components/logical/LogicalView";
 import { PhysicalView } from "@/components/physical/PhysicalView";
 import { TransformationView } from "@/components/transformation/TransformationView";
+import { AiEvolutionView } from "@/components/ai-evolution/AiEvolutionView";
 
 const VALID_VIEWS: ViewLevel[] = ["conceptual", "logical", "physical"];
 const VALID_MODES: AppMode[] = [
@@ -118,6 +119,8 @@ function ArchitecturePageInner() {
   const impactedTotal = Object.keys(emergingByCapability).length;
 
   const isTransformation = mode === "transformation";
+  const isAiEvolution = mode === "ai-evolution";
+  const isOverlayMode = isTransformation || isAiEvolution;
 
   const headerCopy = isTransformation
     ? {
@@ -125,19 +128,25 @@ function ArchitecturePageInner() {
         title: "Transformation planning",
         body: "Current state to future state, sequenced by adoption horizon and prioritised by capability impact. Independent of the view — the transformation lens is applied across the whole architecture.",
       }
-    : {
-        eyebrow: `Architecture · ${view}`,
-        title:
-          view === "conceptual"
-            ? "Capability landscape"
-            : view === "logical"
-              ? "Logical architecture"
-              : "Physical architecture",
-        body:
-          view === "conceptual"
-            ? "The capabilities that run the enterprise, grouped by domain. Pick a capability and drill into its logical view to see how it's actually implemented."
-            : "Services, platforms, data stores and policy points that implement each capability — plus the cross-capability dependencies between them.",
-      };
+    : isAiEvolution
+      ? {
+          eyebrow: "Architecture · AI evolution",
+          title: "How AI is reshaping the enterprise",
+          body: "The AI-specific cut of the transformation portfolio: which layers AI most reshapes, which new capabilities become mandatory, which existing capabilities become unrecognisable, and how the operating model has to change.",
+        }
+      : {
+          eyebrow: `Architecture · ${view}`,
+          title:
+            view === "conceptual"
+              ? "Capability landscape"
+              : view === "logical"
+                ? "Logical architecture"
+                : "Physical architecture",
+          body:
+            view === "conceptual"
+              ? "The capabilities that run the enterprise, grouped by domain. Pick a capability and drill into its logical view to see how it's actually implemented."
+              : "Services, platforms, data stores and policy points that implement each capability — plus the cross-capability dependencies between them.",
+        };
 
   return (
     <div className="space-y-6">
@@ -154,11 +163,11 @@ function ArchitecturePageInner() {
           </p>
         </div>
         <div className="flex flex-wrap items-end gap-3">
-          {!isTransformation && (
+          {!isOverlayMode && (
             <ViewSwitcher value={view} onChange={setView} />
           )}
           <ModeSwitcher value={mode} onChange={setMode} />
-          {!isTransformation && view === "conceptual" && (
+          {!isOverlayMode && view === "conceptual" && (
             <OverlayToggle value={overlay} onChange={setOverlay} />
           )}
         </div>
@@ -166,6 +175,8 @@ function ArchitecturePageInner() {
 
       {isTransformation ? (
         <TransformationView />
+      ) : isAiEvolution ? (
+        <AiEvolutionView />
       ) : (
         <>
           {view === "conceptual" && (
