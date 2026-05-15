@@ -18,13 +18,13 @@ const views: {
     id: "logical",
     label: "Logical",
     hint: "Services, flows and interactions",
-    available: false,
+    available: true,
   },
   {
     id: "physical",
     label: "Physical",
     hint: "Platforms, infrastructure, tooling",
-    available: false,
+    available: true,
   },
 ];
 
@@ -36,7 +36,11 @@ export function ViewSwitcher({
   onChange: (v: ViewLevel) => void;
 }) {
   return (
-    <div className="inline-flex p-1 rounded-xl bg-white ring-1 ring-ink-200/60 shadow-card">
+    <div
+      role="group"
+      aria-label="Architecture view"
+      className="inline-flex p-1 rounded-xl bg-white ring-1 ring-ink-200/60 shadow-card"
+    >
       {views.map((v) => {
         const active = value === v.id;
         return (
@@ -45,8 +49,9 @@ export function ViewSwitcher({
             type="button"
             disabled={!v.available}
             onClick={() => v.available && onChange(v.id)}
+            aria-pressed={active}
             className={[
-              "relative px-4 py-1.5 rounded-lg text-sm font-medium transition-all",
+              "relative px-4 py-1.5 rounded-lg text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-900 focus-visible:ring-offset-2",
               active
                 ? "bg-ink-900 text-white shadow-card"
                 : v.available

@@ -2,6 +2,7 @@
 
 import type { Capability, Domain, EmergingCapability } from "@/lib/types";
 import { CapabilityTile } from "./CapabilityTile";
+import { NewCapabilityForm } from "./NewCapabilityForm";
 import type { Overlay } from "@/components/shell/OverlayToggle";
 
 export function DomainColumn({
@@ -11,6 +12,7 @@ export function DomainColumn({
   emergingByCapability,
   overlay,
   onSelect,
+  onCapabilityCreated,
 }: {
   domain: Domain;
   capabilities: Capability[];
@@ -18,6 +20,7 @@ export function DomainColumn({
   emergingByCapability: Record<string, EmergingCapability[]>;
   overlay: Overlay;
   onSelect: (id: string) => void;
+  onCapabilityCreated?: (c: Capability) => void;
 }) {
   const impactedCount = capabilities.filter(
     (c) => (emergingByCapability[c.id]?.length ?? 0) > 0,
@@ -60,6 +63,12 @@ export function DomainColumn({
             onClick={() => onSelect(c.id)}
           />
         ))}
+        {onCapabilityCreated && (
+          <NewCapabilityForm
+            domain={domain.id}
+            onCreated={onCapabilityCreated}
+          />
+        )}
       </div>
     </section>
   );

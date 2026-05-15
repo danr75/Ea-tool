@@ -29,6 +29,26 @@ a {
   color: inherit;
 }
 
+/* Visible focus ring for keyboard users on any interactive element
+   that hasn't set its own focus-visible style. */
+:where(button, a, [role="button"]):focus-visible {
+  outline: 2px solid #171b27;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Honour user motion preferences. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 .app-grid {
   display: grid;
   grid-template-columns: 1fr;

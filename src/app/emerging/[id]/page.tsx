@@ -9,13 +9,18 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { emergingById, emergingCapabilities } from "@/data/emerging";
-import { ImpactMap } from "@/components/emerging/ImpactMap";
-import { horizonLabel, maturityLabel, percent } from "@/lib/format";
+import { getEmergingById } from "@/lib/db/emerging";
+import { getAllCapabilities } from "@/lib/db/capabilities";
+import { EditableImpactMap } from "@/components/emerging/EditableImpactMap";
+import { EditableEmergingText } from "@/components/emerging/EditableText";
+import { EditableScore } from "@/components/emerging/EditableScore";
+import {
+  EditableEmergingMaturity,
+  EditableHorizon,
+} from "@/components/emerging/EditableEmergingSelect";
+import { DeleteEmergingButton } from "@/components/emerging/DeleteEmergingButton";
 
-export function generateStaticParams() {
-  return emergingCapabilities.map((e) => ({ id: e.id }));
-}
+export const dynamic = "force-dynamic";
 
 export default async function EmergingDetailPage({
   params,
@@ -23,8 +28,12 @@ export default async function EmergingDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const item = emergingById[id];
+  const [item, capabilities] = await Promise.all([
+    getEmergingById(id),
+    getAllCapabilities(),
+  ]);
   if (!item) notFound();
+  const capabilitiesById = Object.fromEntries(capabilities.map((c) => [c.id, c]));
 
   return (
     <div className="space-y-8">
@@ -40,20 +49,50 @@ export default async function EmergingDetailPage({
 
       <header className="space-y-3 max-w-3xl">
         <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-ink-400 font-medium">
-          <span>{item.category}</span>
+          <EditableEmergingText
+            signalId={item.id}
+            field="category"
+            value={item.category}
+            textClassName="inline"
+            className="inline-block"
+          />
           <span className="text-ink-200">·</span>
-          <span>{horizonLabel[item.horizon]}</span>
+          <EditableHorizon signalId={item.id} value={item.horizon} />
           <span className="text-ink-200">·</span>
-          <span>{maturityLabel[item.maturity]} maturity</span>
+          <EditableEmergingMaturity signalId={item.id} value={item.maturity} />
         </div>
-        <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-ink-900 leading-tight">
-          {item.name}
-        </h1>
-        <p className="text-base text-ink-500 leading-relaxed">{item.summary}</p>
+        <EditableEmergingText
+          signalId={item.id}
+          field="name"
+          value={item.name}
+          textClassName="text-3xl md:text-4xl font-semibold tracking-tight text-ink-900 leading-tight"
+        />
+        <EditableEmergingText
+          signalId={item.id}
+          field="summary"
+          value={item.summary}
+          multiline
+          textClassName="text-base text-ink-500 leading-relaxed"
+        />
         <dl className="grid grid-cols-3 max-w-xl gap-3 pt-2">
-          <Score label="Likelihood" v={item.likelihood} />
-          <Score label="Impact" v={item.impact} />
-          <Score label="Urgency" v={item.urgency} />
+          <EditableScore
+            signalId={item.id}
+            field="likelihood"
+            value={item.likelihood}
+            label="Likelihood"
+          />
+          <EditableScore
+            signalId={item.id}
+            field="impact"
+            value={item.impact}
+            label="Impact"
+          />
+          <EditableScore
+            signalId={item.id}
+            field="urgency"
+            value={item.urgency}
+            label="Urgency"
+          />
         </dl>
         <div className="flex flex-wrap gap-1.5 pt-1">
           {item.industries.map((ind) => (
@@ -69,7 +108,12 @@ export default async function EmergingDetailPage({
 
       <section className="space-y-3">
         <SectionHeader title="How it changes the architecture" />
-        <ImpactMap impacts={item.impacts} />
+        <EditableImpactMap
+          signalId={item.id}
+          impacts={item.impacts}
+          capabilities={capabilities}
+          capabilitiesById={capabilitiesById}
+        />
       </section>
 
       <div className="grid md:grid-cols-2 gap-4">
@@ -106,6 +150,10 @@ export default async function EmergingDetailPage({
         title="Workforce and skill impacts"
         items={item.workforceShifts}
       />
+
+      <div className="pt-4 border-t border-ink-100">
+        <DeleteEmergingButton signalId={item.id} signalName={item.name} />
+      </div>
     </div>
   );
 }
@@ -115,25 +163,6 @@ function SectionHeader({ title }: { title: string }) {
     <h2 className="text-xs uppercase tracking-[0.14em] text-ink-400 font-semibold">
       {title}
     </h2>
-  );
-}
-
-function Score({ label, v }: { label: string; v: number }) {
-  return (
-    <div className="bg-white rounded-xl ring-1 ring-ink-100 p-3 shadow-card">
-      <div className="text-[11px] text-ink-400 font-medium uppercase tracking-wider">
-        {label}
-      </div>
-      <div className="mt-1.5 h-1.5 rounded-full bg-ink-100 overflow-hidden">
-        <div
-          className="h-full bg-ink-900"
-          style={{ width: `${Math.round(v * 100)}%` }}
-        />
-      </div>
-      <div className="mt-1.5 text-lg font-semibold text-ink-900">
-        {percent(v)}
-      </div>
-    </div>
   );
 }
 
