@@ -1,10 +1,13 @@
-import { emergingCapabilities } from "@/data/emerging";
+import { getAllEmerging } from "@/lib/db/emerging";
 import { EmergingCard } from "@/components/emerging/EmergingCard";
 import { EmergingRadar } from "@/components/emerging/EmergingRadar";
 import type { AdoptionHorizon } from "@/lib/types";
 import { horizonLabel, horizonOrder } from "@/lib/format";
 
-export default function EmergingPage() {
+export const dynamic = "force-dynamic";
+
+export default async function EmergingPage() {
+  const emergingCapabilities = await getAllEmerging();
   const byHorizon = horizonOrder
     .map((h) => ({
       horizon: h,

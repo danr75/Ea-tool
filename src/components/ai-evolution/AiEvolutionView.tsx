@@ -1,3 +1,5 @@
+"use client";
+
 import {
   aiSignals,
   computeAiHeadline,
@@ -6,18 +8,24 @@ import {
   computeOperatingModelShifts,
   computeReshapedCapabilities,
 } from "@/lib/ai-evolution";
+import { useArchitectureData } from "@/components/ArchitectureDataProvider";
 import { DomainHeatmap } from "./DomainHeatmap";
 import { MandatoryCapabilities } from "./MandatoryCapabilities";
 import { OperatingModelShiftsPanel } from "./OperatingModelShifts";
 import { ReshapedCapabilities } from "./ReshapedCapabilities";
 
 export function AiEvolutionView() {
-  const headline = computeAiHeadline();
-  const domainImpact = computeDomainImpact();
-  const mandatory = computeMandatoryCapabilities();
-  const reshaped = computeReshapedCapabilities();
-  const shifts = computeOperatingModelShifts();
-  const aiSignalList = aiSignals();
+  const { capabilities, emerging, capabilitiesById } = useArchitectureData();
+  const headline = computeAiHeadline(capabilities, emerging, capabilitiesById);
+  const domainImpact = computeDomainImpact(
+    capabilities,
+    emerging,
+    capabilitiesById,
+  );
+  const mandatory = computeMandatoryCapabilities(emerging, capabilitiesById);
+  const reshaped = computeReshapedCapabilities(emerging, capabilitiesById);
+  const shifts = computeOperatingModelShifts(emerging, capabilitiesById);
+  const aiSignalList = aiSignals(emerging, capabilitiesById);
 
   const aiSignalShare = Math.round(
     (headline.aiSignalCount / Math.max(headline.totalSignalCount, 1)) * 100,

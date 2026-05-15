@@ -1,8 +1,4 @@
 // Prisma schema for the Enterprise Architecture Intelligence Platform.
-// Capabilities are migrated to the database first as the foundational
-// editable entity. Other entity types (relationships, emerging signals,
-// logical and physical components) remain seeded from TypeScript files
-// until a clear authoring need warrants moving them here.
 
 generator client {
   provider = "prisma-client-js"
@@ -22,6 +18,119 @@ model Capability {
   maturity  String
   reuse     Float
   ownership String?
+
+  outgoingRelationships Relationship[]      @relation("FromCapability")
+  incomingRelationships Relationship[]      @relation("ToCapability")
+  emergingImpacts       EmergingImpact[]
+  logicalComponents     LogicalComponent[]
+  physicalComponents    PhysicalComponent[]
+
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
+}
+
+model Relationship {
+  id       Int    @id @default(autoincrement())
+  fromId   String
+  toId     String
+  kind     String
+  strength Float
+
+  from Capability @relation("FromCapability", fields: [fromId], references: [id], onDelete: Cascade)
+  to   Capability @relation("ToCapability", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@unique([fromId, toId, kind])
+}
+
+model EmergingCapability {
+  id               String @id
+  name             String
+  summary          String
+  category         String
+  horizon          String
+  likelihood       Float
+  impact           Float
+  urgency          Float
+  maturity         String
+  industries       String // JSON array
+  opportunities    String // JSON array
+  risks            String // JSON array
+  migrationPath    String // JSON array
+  governanceShifts String // JSON array
+  workforceShifts  String // JSON array
+
+  impacts EmergingImpact[]
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+model EmergingImpact {
+  id           Int    @id @default(autoincrement())
+  signalId     String
+  capabilityId String
+  kind         String
+  note         String
+
+  signal     EmergingCapability @relation(fields: [signalId], references: [id], onDelete: Cascade)
+  capability Capability         @relation(fields: [capabilityId], references: [id], onDelete: Cascade)
+
+  @@unique([signalId, capabilityId])
+}
+
+model LogicalComponent {
+  id           String  @id
+  capabilityId String
+  name         String
+  kind         String
+  description  String?
+
+  capability    Capability    @relation(fields: [capabilityId], references: [id], onDelete: Cascade)
+  outgoingFlows LogicalFlow[] @relation("FromLogicalComponent")
+  incomingFlows LogicalFlow[] @relation("ToLogicalComponent")
+
+  physicalComponents PhysicalComponent[]
+}
+
+model LogicalFlow {
+  id     Int     @id @default(autoincrement())
+  fromId String
+  toId   String
+  kind   String
+  label  String?
+
+  from LogicalComponent @relation("FromLogicalComponent", fields: [fromId], references: [id], onDelete: Cascade)
+  to   LogicalComponent @relation("ToLogicalComponent", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@unique([fromId, toId, kind])
+}
+
+model PhysicalComponent {
+  id                 String  @id
+  capabilityId       String
+  logicalComponentId String?
+  name               String
+  vendor             String?
+  kind               String
+  host               String
+  description        String?
+
+  capability       Capability        @relation(fields: [capabilityId], references: [id], onDelete: Cascade)
+  logicalComponent LogicalComponent? @relation(fields: [logicalComponentId], references: [id], onDelete: SetNull)
+
+  outgoingDeps PhysicalDependency[] @relation("FromPhysicalComponent")
+  incomingDeps PhysicalDependency[] @relation("ToPhysicalComponent")
+}
+
+model PhysicalDependency {
+  id     Int     @id @default(autoincrement())
+  fromId String
+  toId   String
+  kind   String
+  label  String?
+
+  from PhysicalComponent @relation("FromPhysicalComponent", fields: [fromId], references: [id], onDelete: Cascade)
+  to   PhysicalComponent @relation("ToPhysicalComponent", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@unique([fromId, toId, kind])
 }

@@ -1,9 +1,14 @@
-import type { CapabilityImpact } from "@/lib/types";
-import { capabilitiesById } from "@/data/capabilities";
+import type { Capability, CapabilityImpact } from "@/lib/types";
 import { domainsById } from "@/data/domains";
 import { impactColor, impactLabel } from "@/lib/format";
 
-export function ImpactMap({ impacts }: { impacts: CapabilityImpact[] }) {
+export function ImpactMap({
+  impacts,
+  capabilitiesById,
+}: {
+  impacts: CapabilityImpact[];
+  capabilitiesById: Record<string, Capability>;
+}) {
   const grouped = impacts.reduce(
     (acc, i) => {
       (acc[i.kind] ??= []).push(i);

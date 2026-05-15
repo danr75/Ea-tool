@@ -4,9 +4,7 @@ import type {
   EmergingCapability,
   ImpactKind,
 } from "@/lib/types";
-import { capabilities, capabilitiesById } from "@/data/capabilities";
 import { domains } from "@/data/domains";
-import { emergingCapabilities } from "@/data/emerging";
 
 const HORIZON_URGENCY = { now: 1, next: 0.7, later: 0.4, watch: 0.2 } as const;
 const KIND_WEIGHT: Record<ImpactKind, number> = {
@@ -16,7 +14,10 @@ const KIND_WEIGHT: Record<ImpactKind, number> = {
   consolidate: 0.5,
 };
 
-export function isAiSignal(signal: EmergingCapability): boolean {
+export function isAiSignal(
+  signal: EmergingCapability,
+  capabilitiesById: Record<string, Capability>,
+): boolean {
   if (signal.category === "AI") return true;
   for (const imp of signal.impacts) {
     const cap = capabilitiesById[imp.capabilityId];
@@ -25,8 +26,11 @@ export function isAiSignal(signal: EmergingCapability): boolean {
   return ["em-vector-db", "em-knowledge-graph"].includes(signal.id);
 }
 
-export function aiSignals(): EmergingCapability[] {
-  return emergingCapabilities.filter(isAiSignal);
+export function aiSignals(
+  emerging: EmergingCapability[],
+  capabilitiesById: Record<string, Capability>,
+): EmergingCapability[] {
+  return emerging.filter((s) => isAiSignal(s, capabilitiesById));
 }
 
 export interface DomainAiImpact {
@@ -37,8 +41,12 @@ export interface DomainAiImpact {
   weightedScore: number;
 }
 
-export function computeDomainImpact(): DomainAiImpact[] {
-  const signals = aiSignals();
+export function computeDomainImpact(
+  capabilities: Capability[],
+  emerging: EmergingCapability[],
+  capabilitiesById: Record<string, Capability>,
+): DomainAiImpact[] {
+  const signals = aiSignals(emerging, capabilitiesById);
   return domains.map((d) => {
     const domainCaps = capabilities.filter((c) => c.domain === d.id);
     const touchedCapIds = new Set<string>();
@@ -72,8 +80,11 @@ export interface MandatoryCapability {
   notes: string[];
 }
 
-export function computeMandatoryCapabilities(): MandatoryCapability[] {
-  const signals = aiSignals();
+export function computeMandatoryCapabilities(
+  emerging: EmergingCapability[],
+  capabilitiesById: Record<string, Capability>,
+): MandatoryCapability[] {
+  const signals = aiSignals(emerging, capabilitiesById);
   const byCap: Record<string, MandatoryCapability> = {};
   for (const sig of signals) {
     for (const imp of sig.impacts) {
@@ -103,8 +114,11 @@ export interface ReshapedCapability {
   score: number;
 }
 
-export function computeReshapedCapabilities(): ReshapedCapability[] {
-  const signals = aiSignals();
+export function computeReshapedCapabilities(
+  emerging: EmergingCapability[],
+  capabilitiesById: Record<string, Capability>,
+): ReshapedCapability[] {
+  const signals = aiSignals(emerging, capabilitiesById);
   const byCap: Record<string, ReshapedCapability> = {};
   for (const sig of signals) {
     for (const imp of sig.impacts) {
@@ -142,16 +156,24 @@ export interface AiHeadline {
   totalDomains: number;
 }
 
-export function computeAiHeadline(): AiHeadline {
-  const signals = aiSignals();
-  const mandatory = computeMandatoryCapabilities();
-  const reshaped = computeReshapedCapabilities();
+export function computeAiHeadline(
+  capabilities: Capability[],
+  emerging: EmergingCapability[],
+  capabilitiesById: Record<string, Capability>,
+): AiHeadline {
+  const signals = aiSignals(emerging, capabilitiesById);
+  const mandatory = computeMandatoryCapabilities(emerging, capabilitiesById);
+  const reshaped = computeReshapedCapabilities(emerging, capabilitiesById);
   const now = signals.filter((s) => s.horizon === "now").length;
-  const domainImpact = computeDomainImpact();
+  const domainImpact = computeDomainImpact(
+    capabilities,
+    emerging,
+    capabilitiesById,
+  );
   const touched = domainImpact.filter((d) => d.capabilitiesImpacted > 0).length;
   return {
     aiSignalCount: signals.length,
-    totalSignalCount: emergingCapabilities.length,
+    totalSignalCount: emerging.length,
     mandatoryCount: mandatory.length,
     reshapedCount: reshaped.length,
     nowHorizon: now,
@@ -165,8 +187,11 @@ export interface OperatingModelShifts {
   workforceShifts: { signal: EmergingCapability; text: string }[];
 }
 
-export function computeOperatingModelShifts(): OperatingModelShifts {
-  const signals = aiSignals();
+export function computeOperatingModelShifts(
+  emerging: EmergingCapability[],
+  capabilitiesById: Record<string, Capability>,
+): OperatingModelShifts {
+  const signals = aiSignals(emerging, capabilitiesById);
   const governance: { signal: EmergingCapability; text: string }[] = [];
   const workforce: { signal: EmergingCapability; text: string }[] = [];
   for (const sig of signals) {

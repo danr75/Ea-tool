@@ -9,13 +9,12 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { emergingById, emergingCapabilities } from "@/data/emerging";
+import { getEmergingById } from "@/lib/db/emerging";
+import { getAllCapabilities } from "@/lib/db/capabilities";
 import { ImpactMap } from "@/components/emerging/ImpactMap";
 import { horizonLabel, maturityLabel, percent } from "@/lib/format";
 
-export function generateStaticParams() {
-  return emergingCapabilities.map((e) => ({ id: e.id }));
-}
+export const dynamic = "force-dynamic";
 
 export default async function EmergingDetailPage({
   params,
@@ -23,8 +22,12 @@ export default async function EmergingDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const item = emergingById[id];
+  const [item, capabilities] = await Promise.all([
+    getEmergingById(id),
+    getAllCapabilities(),
+  ]);
   if (!item) notFound();
+  const capabilitiesById = Object.fromEntries(capabilities.map((c) => [c.id, c]));
 
   return (
     <div className="space-y-8">
@@ -69,7 +72,10 @@ export default async function EmergingDetailPage({
 
       <section className="space-y-3">
         <SectionHeader title="How it changes the architecture" />
-        <ImpactMap impacts={item.impacts} />
+        <ImpactMap
+          impacts={item.impacts}
+          capabilitiesById={capabilitiesById}
+        />
       </section>
 
       <div className="grid md:grid-cols-2 gap-4">

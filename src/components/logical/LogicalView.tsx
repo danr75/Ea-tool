@@ -2,16 +2,32 @@
 
 import Link from "next/link";
 import { ArrowLeft, Layers } from "lucide-react";
-import type { Capability } from "@/lib/types";
-import { capabilities, capabilitiesById } from "@/data/capabilities";
+import type {
+  Capability,
+  LogicalComponent,
+  LogicalFlow,
+} from "@/lib/types";
 import { domainsById } from "@/data/domains";
-import {
-  capabilitiesWithLogical,
-  logicalComponents,
-  logicalForCapability,
-} from "@/data/logical";
+import { useArchitectureData } from "@/components/ArchitectureDataProvider";
 import { LogicalGraph } from "./LogicalGraph";
 import { logicalNodeKindMeta } from "./LogicalNode";
+
+function partitionFlows(
+  flows: LogicalFlow[],
+  componentIds: Set<string>,
+) {
+  const internal: LogicalFlow[] = [];
+  const incoming: LogicalFlow[] = [];
+  const outgoing: LogicalFlow[] = [];
+  for (const f of flows) {
+    const fromIn = componentIds.has(f.from);
+    const toIn = componentIds.has(f.to);
+    if (fromIn && toIn) internal.push(f);
+    else if (toIn) incoming.push(f);
+    else if (fromIn) outgoing.push(f);
+  }
+  return { internal, incoming, outgoing };
+}
 
 export function LogicalView({
   capabilityId,
@@ -22,15 +38,41 @@ export function LogicalView({
   onPickCapability: (id: string) => void;
   onBackToConceptual: () => void;
 }) {
+  const {
+    capabilitiesById,
+    logicalComponents,
+    logicalFlows,
+    capabilitiesWithLogical,
+  } = useArchitectureData();
+
   if (!capabilityId) {
-    return <PickCapability onPick={onPickCapability} />;
+    return (
+      <PickCapability
+        onPick={onPickCapability}
+        capabilitiesWithLogical={capabilitiesWithLogical}
+        capabilitiesById={capabilitiesById}
+      />
+    );
   }
 
   const cap = capabilitiesById[capabilityId];
-  if (!cap) return <PickCapability onPick={onPickCapability} />;
+  if (!cap)
+    return (
+      <PickCapability
+        onPick={onPickCapability}
+        capabilitiesWithLogical={capabilitiesWithLogical}
+        capabilitiesById={capabilitiesById}
+      />
+    );
 
-  const { components, internal, incoming, outgoing } =
-    logicalForCapability(capabilityId);
+  const components = logicalComponents.filter(
+    (c) => c.capabilityId === capabilityId,
+  );
+  const componentIds = new Set(components.map((c) => c.id));
+  const { internal, incoming, outgoing } = partitionFlows(
+    logicalFlows,
+    componentIds,
+  );
 
   if (components.length === 0) {
     return (
@@ -38,6 +80,8 @@ export function LogicalView({
         capability={cap}
         onPick={onPickCapability}
         onBack={onBackToConceptual}
+        capabilitiesWithLogical={capabilitiesWithLogical}
+        capabilitiesById={capabilitiesById}
       />
     );
   }
@@ -52,11 +96,11 @@ export function LogicalView({
   }
   for (const c of components) neighbourIds.delete(c.id);
 
-  const allComponents = [
+  const allComponents: LogicalComponent[] = [
     ...components,
     ...Array.from(neighbourIds)
       .map((id) => logicalComponents.find((c) => c.id === id))
-      .filter((c): c is (typeof logicalComponents)[number] => Boolean(c)),
+      .filter((c): c is LogicalComponent => Boolean(c)),
   ];
 
   const domain = domainsById[cap.domain];
@@ -85,7 +129,12 @@ export function LogicalView({
             {cap.name} · logical view
           </h2>
         </div>
-        <CapabilityPicker current={capabilityId} onPick={onPickCapability} />
+        <CapabilityPicker
+          current={capabilityId}
+          onPick={onPickCapability}
+          capabilitiesWithLogical={capabilitiesWithLogical}
+          capabilitiesById={capabilitiesById}
+        />
       </div>
 
       <p className="text-sm text-ink-500 leading-relaxed max-w-3xl">
@@ -104,12 +153,22 @@ export function LogicalView({
 
       <CrossCapabilityBridges
         flows={[...incoming, ...outgoing]}
+        logicalComponents={logicalComponents}
+        capabilitiesById={capabilitiesById}
       />
     </div>
   );
 }
 
-function PickCapability({ onPick }: { onPick: (id: string) => void }) {
+function PickCapability({
+  onPick,
+  capabilitiesWithLogical,
+  capabilitiesById,
+}: {
+  onPick: (id: string) => void;
+  capabilitiesWithLogical: string[];
+  capabilitiesById: Record<string, Capability>;
+}) {
   return (
     <div className="bg-white rounded-2xl ring-1 ring-ink-100 shadow-card p-8">
       <div className="max-w-2xl">
@@ -162,10 +221,14 @@ function NoLogicalContent({
   capability,
   onPick,
   onBack,
+  capabilitiesWithLogical,
+  capabilitiesById,
 }: {
   capability: Capability;
   onPick: (id: string) => void;
   onBack: () => void;
+  capabilitiesWithLogical: string[];
+  capabilitiesById: Record<string, Capability>;
 }) {
   return (
     <div className="bg-white rounded-2xl ring-1 ring-dashed ring-ink-200 p-8 max-w-3xl">
@@ -215,9 +278,13 @@ function NoLogicalContent({
 function CapabilityPicker({
   current,
   onPick,
+  capabilitiesWithLogical,
+  capabilitiesById,
 }: {
   current: string;
   onPick: (id: string) => void;
+  capabilitiesWithLogical: string[];
+  capabilitiesById: Record<string, Capability>;
 }) {
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
@@ -273,8 +340,12 @@ function Legend() {
 
 function CrossCapabilityBridges({
   flows,
+  logicalComponents,
+  capabilitiesById,
 }: {
   flows: { from: string; to: string; label?: string }[];
+  logicalComponents: LogicalComponent[];
+  capabilitiesById: Record<string, Capability>;
 }) {
   if (flows.length === 0) return null;
   const componentById = Object.fromEntries(

@@ -1,16 +1,20 @@
+"use client";
+
 import {
   computeCapabilityChanges,
   computeFutureStateSummary,
   computeRoadmap,
 } from "@/lib/transformation";
+import { useArchitectureData } from "@/components/ArchitectureDataProvider";
 import { TransitionRoadmap } from "./TransitionRoadmap";
 import { CapabilityDelta } from "./CapabilityDelta";
 import { UpliftPriorities } from "./UpliftPriorities";
 
 export function TransformationView() {
-  const changes = computeCapabilityChanges();
-  const roadmap = computeRoadmap();
-  const summary = computeFutureStateSummary();
+  const { capabilities, emerging } = useArchitectureData();
+  const changes = computeCapabilityChanges(capabilities, emerging);
+  const roadmap = computeRoadmap(emerging);
+  const summary = computeFutureStateSummary(capabilities, emerging);
 
   const stats = [
     {

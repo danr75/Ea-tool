@@ -1,19 +1,16 @@
 "use client";
 
-import { Suspense, useCallback, useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Sparkles } from "lucide-react";
 import type {
   AppMode,
   Capability,
+  EmergingCapability,
   MaturityLevel,
   ViewLevel,
 } from "@/lib/types";
 import { domains } from "@/data/domains";
-import { emergingCapabilities } from "@/data/emerging";
-import { relationships } from "@/data/relationships";
-import { capabilitiesWithLogical } from "@/data/logical";
-import { capabilitiesWithPhysical } from "@/data/physical";
 import { maturityLabel } from "@/lib/format";
 import { ModeSwitcher } from "@/components/shell/ModeSwitcher";
 import { ViewSwitcher } from "@/components/shell/ViewSwitcher";
@@ -28,6 +25,7 @@ import { LogicalView } from "@/components/logical/LogicalView";
 import { PhysicalView } from "@/components/physical/PhysicalView";
 import { TransformationView } from "@/components/transformation/TransformationView";
 import { AiEvolutionView } from "@/components/ai-evolution/AiEvolutionView";
+import { useArchitectureData } from "@/components/ArchitectureDataProvider";
 
 const VALID_VIEWS: ViewLevel[] = ["conceptual", "logical", "physical"];
 const VALID_MODES: AppMode[] = [
@@ -37,42 +35,31 @@ const VALID_MODES: AppMode[] = [
   "ai-evolution",
 ];
 
-export function ArchitectureClient({
-  initialCapabilities,
-}: {
-  initialCapabilities: Capability[];
-}) {
+export function ArchitectureClient() {
   return (
     <Suspense fallback={<div className="text-sm text-ink-400">Loading…</div>}>
-      <ArchitectureClientInner initialCapabilities={initialCapabilities} />
+      <ArchitectureClientInner />
     </Suspense>
   );
 }
 
-function ArchitectureClientInner({
-  initialCapabilities,
-}: {
-  initialCapabilities: Capability[];
-}) {
+function ArchitectureClientInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  const [capabilities, setCapabilities] = useState<Capability[]>(initialCapabilities);
-
-  const handleCapabilityUpdated = useCallback((updated: Capability) => {
-    setCapabilities((prev) =>
-      prev.map((c) => (c.id === updated.id ? updated : c)),
-    );
-  }, []);
-
-  const handleCapabilityCreated = useCallback((created: Capability) => {
-    setCapabilities((prev) => [...prev, created]);
-  }, []);
+  const data = useArchitectureData();
+  const {
+    capabilities,
+    relationships,
+    emergingByCapability,
+    capabilitiesWithLogical,
+    capabilitiesWithPhysical,
+    upsertCapability,
+    removeCapability,
+  } = data;
 
   const handleCapabilityDeleted = useCallback(
     (deletedId: string) => {
-      setCapabilities((prev) => prev.filter((c) => c.id !== deletedId));
-      // If the deleted capability is currently selected, clear it.
+      removeCapability(deletedId);
       const current = searchParams.get("capability");
       if (current === deletedId) {
         const params = new URLSearchParams(searchParams.toString());
@@ -83,7 +70,7 @@ function ArchitectureClientInner({
         });
       }
     },
-    [router, searchParams],
+    [router, searchParams, removeCapability],
   );
 
   const viewParam = searchParams.get("view") as ViewLevel | null;
@@ -140,16 +127,6 @@ function ArchitectureClientInner({
     (id: string | null) => setQuery({ capability: id }),
     [setQuery],
   );
-
-  const emergingByCapability = useMemo(() => {
-    const map: Record<string, typeof emergingCapabilities> = {};
-    for (const e of emergingCapabilities) {
-      for (const imp of e.impacts) {
-        (map[imp.capabilityId] ??= []).push(e);
-      }
-    }
-    return map;
-  }, []);
 
   const capsByDomain = useMemo(() => {
     return Object.fromEntries(
@@ -235,9 +212,9 @@ function ArchitectureClientInner({
               onDrillIntoPhysical={(id) =>
                 setQuery({ view: "physical", capability: id })
               }
-              onCapabilityUpdated={handleCapabilityUpdated}
+              onCapabilityUpdated={upsertCapability}
               onCapabilityCreated={(c) => {
-                handleCapabilityCreated(c);
+                upsertCapability(c);
                 setSelectedId(c.id);
               }}
               onCapabilityDeleted={handleCapabilityDeleted}
@@ -284,7 +261,7 @@ function ConceptualView({
   selectedId: string | null;
   impactedTotal: number;
   capsByDomain: Record<string, Capability[]>;
-  emergingByCapability: Record<string, typeof emergingCapabilities>;
+  emergingByCapability: Record<string, EmergingCapability[]>;
   onSelect: (id: string | null) => void;
   onDrillIntoLogical: (id: string) => void;
   onDrillIntoPhysical: (id: string) => void;
@@ -292,6 +269,8 @@ function ConceptualView({
   onCapabilityCreated: (c: Capability) => void;
   onCapabilityDeleted: (id: string) => void;
 }) {
+  const { relationships, capabilitiesWithLogical, capabilitiesWithPhysical } =
+    useArchitectureData();
   const selected = selectedId
     ? capabilities.find((c) => c.id === selectedId) ?? null
     : null;

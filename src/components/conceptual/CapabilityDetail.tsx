@@ -7,8 +7,8 @@ import type {
   EmergingCapability,
   Relationship,
 } from "@/lib/types";
-import { capabilitiesById } from "@/data/capabilities";
 import { domainsById } from "@/data/domains";
+import { useArchitectureData } from "@/components/ArchitectureDataProvider";
 import {
   impactColor,
   impactLabel,
@@ -178,6 +178,7 @@ function RelationshipList({
   getOther: (r: Relationship) => string;
   arrow: string;
 }) {
+  const { capabilitiesById } = useArchitectureData();
   if (kinds.length === 0) return null;
   return (
     <section>

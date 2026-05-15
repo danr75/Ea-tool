@@ -1,16 +1,32 @@
 "use client";
 
 import { ArrowLeft, Server } from "lucide-react";
-import type { Capability } from "@/lib/types";
-import { capabilitiesById } from "@/data/capabilities";
+import type {
+  Capability,
+  PhysicalComponent,
+  PhysicalDependency,
+} from "@/lib/types";
 import { domainsById } from "@/data/domains";
-import {
-  capabilitiesWithPhysical,
-  physicalComponents,
-  physicalForCapability,
-} from "@/data/physical";
+import { useArchitectureData } from "@/components/ArchitectureDataProvider";
 import { PhysicalGraph } from "./PhysicalGraph";
 import { physicalHostMeta, physicalKindMeta } from "./PhysicalNode";
+
+function partitionDeps(
+  deps: PhysicalDependency[],
+  ids: Set<string>,
+) {
+  const internal: PhysicalDependency[] = [];
+  const incoming: PhysicalDependency[] = [];
+  const outgoing: PhysicalDependency[] = [];
+  for (const d of deps) {
+    const fromIn = ids.has(d.from);
+    const toIn = ids.has(d.to);
+    if (fromIn && toIn) internal.push(d);
+    else if (toIn) incoming.push(d);
+    else if (fromIn) outgoing.push(d);
+  }
+  return { internal, incoming, outgoing };
+}
 
 export function PhysicalView({
   capabilityId,
@@ -21,15 +37,41 @@ export function PhysicalView({
   onPickCapability: (id: string) => void;
   onBackToConceptual: () => void;
 }) {
+  const {
+    capabilitiesById,
+    physicalComponents,
+    physicalDependencies,
+    capabilitiesWithPhysical,
+  } = useArchitectureData();
+
   if (!capabilityId) {
-    return <PickCapability onPick={onPickCapability} />;
+    return (
+      <PickCapability
+        onPick={onPickCapability}
+        capabilitiesWithPhysical={capabilitiesWithPhysical}
+        capabilitiesById={capabilitiesById}
+      />
+    );
   }
 
   const cap = capabilitiesById[capabilityId];
-  if (!cap) return <PickCapability onPick={onPickCapability} />;
+  if (!cap)
+    return (
+      <PickCapability
+        onPick={onPickCapability}
+        capabilitiesWithPhysical={capabilitiesWithPhysical}
+        capabilitiesById={capabilitiesById}
+      />
+    );
 
-  const { components, internal, incoming, outgoing } =
-    physicalForCapability(capabilityId);
+  const components = physicalComponents.filter(
+    (c) => c.capabilityId === capabilityId,
+  );
+  const componentIds = new Set(components.map((c) => c.id));
+  const { internal, incoming, outgoing } = partitionDeps(
+    physicalDependencies,
+    componentIds,
+  );
 
   if (components.length === 0) {
     return (
@@ -37,6 +79,8 @@ export function PhysicalView({
         capability={cap}
         onPick={onPickCapability}
         onBack={onBackToConceptual}
+        capabilitiesWithPhysical={capabilitiesWithPhysical}
+        capabilitiesById={capabilitiesById}
       />
     );
   }
@@ -49,11 +93,11 @@ export function PhysicalView({
   }
   for (const c of components) neighbourIds.delete(c.id);
 
-  const allComponents = [
+  const allComponents: PhysicalComponent[] = [
     ...components,
     ...Array.from(neighbourIds)
       .map((id) => physicalComponents.find((c) => c.id === id))
-      .filter((c): c is (typeof physicalComponents)[number] => Boolean(c)),
+      .filter((c): c is PhysicalComponent => Boolean(c)),
   ];
 
   const domain = domainsById[cap.domain];
@@ -82,7 +126,12 @@ export function PhysicalView({
             {cap.name} · physical view
           </h2>
         </div>
-        <CapabilityPicker current={capabilityId} onPick={onPickCapability} />
+        <CapabilityPicker
+          current={capabilityId}
+          onPick={onPickCapability}
+          capabilitiesWithPhysical={capabilitiesWithPhysical}
+          capabilitiesById={capabilitiesById}
+        />
       </div>
 
       <p className="text-sm text-ink-500 leading-relaxed max-w-3xl">
@@ -103,7 +152,15 @@ export function PhysicalView({
   );
 }
 
-function PickCapability({ onPick }: { onPick: (id: string) => void }) {
+function PickCapability({
+  onPick,
+  capabilitiesWithPhysical,
+  capabilitiesById,
+}: {
+  onPick: (id: string) => void;
+  capabilitiesWithPhysical: string[];
+  capabilitiesById: Record<string, Capability>;
+}) {
   return (
     <div className="bg-white rounded-2xl ring-1 ring-ink-100 shadow-card p-8">
       <div className="max-w-2xl">
@@ -155,10 +212,14 @@ function NoPhysicalContent({
   capability,
   onPick,
   onBack,
+  capabilitiesWithPhysical,
+  capabilitiesById,
 }: {
   capability: Capability;
   onPick: (id: string) => void;
   onBack: () => void;
+  capabilitiesWithPhysical: string[];
+  capabilitiesById: Record<string, Capability>;
 }) {
   return (
     <div className="bg-white rounded-2xl ring-1 ring-dashed ring-ink-200 p-8 max-w-3xl">
@@ -208,9 +269,13 @@ function NoPhysicalContent({
 function CapabilityPicker({
   current,
   onPick,
+  capabilitiesWithPhysical,
+  capabilitiesById,
 }: {
   current: string;
   onPick: (id: string) => void;
+  capabilitiesWithPhysical: string[];
+  capabilitiesById: Record<string, Capability>;
 }) {
   return (
     <div className="flex items-center gap-1.5 flex-wrap">

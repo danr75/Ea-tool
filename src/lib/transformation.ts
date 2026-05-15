@@ -4,8 +4,6 @@ import type {
   EmergingCapability,
   ImpactKind,
 } from "@/lib/types";
-import { capabilities } from "@/data/capabilities";
-import { emergingCapabilities } from "@/data/emerging";
 
 export interface CapabilityChange {
   capability: Capability;
@@ -47,7 +45,10 @@ const HORIZON_URGENCY: Record<AdoptionHorizon, number> = {
   watch: 0.2,
 };
 
-export function computeCapabilityChanges(): CapabilityChange[] {
+export function computeCapabilityChanges(
+  capabilities: Capability[],
+  emerging: EmergingCapability[],
+): CapabilityChange[] {
   const byId: Record<string, CapabilityChange> = {};
   for (const c of capabilities) {
     byId[c.id] = {
@@ -61,7 +62,7 @@ export function computeCapabilityChanges(): CapabilityChange[] {
       primaryKind: null,
     };
   }
-  for (const sig of emergingCapabilities) {
+  for (const sig of emerging) {
     for (const imp of sig.impacts) {
       const change = byId[imp.capabilityId];
       if (!change) continue;
@@ -100,20 +101,25 @@ function pickPrimaryKind(change: CapabilityChange): ImpactKind | null {
   return winner[1] > 0 ? winner[0] : null;
 }
 
-export function computeRoadmap(): RoadmapEntry[] {
+export function computeRoadmap(
+  emerging: EmergingCapability[],
+): RoadmapEntry[] {
   const horizons: AdoptionHorizon[] = ["now", "next", "later", "watch"];
   return horizons
     .map((horizon) => ({
       horizon,
-      signals: emergingCapabilities
+      signals: emerging
         .filter((e) => e.horizon === horizon)
         .sort((a, b) => b.impact - a.impact),
     }))
     .filter((r) => r.signals.length > 0);
 }
 
-export function computeFutureStateSummary(): FutureStateSummary {
-  const changes = computeCapabilityChanges();
+export function computeFutureStateSummary(
+  capabilities: Capability[],
+  emerging: EmergingCapability[],
+): FutureStateSummary {
+  const changes = computeCapabilityChanges(capabilities, emerging);
   let newCount = 0;
   let enhanceCount = 0;
   let replaceCount = 0;
@@ -131,6 +137,6 @@ export function computeFutureStateSummary(): FutureStateSummary {
     consolidateCount,
     impactedCapabilities: changes.length,
     totalCapabilities: capabilities.length,
-    totalSignals: emergingCapabilities.length,
+    totalSignals: emerging.length,
   };
 }
