@@ -111,6 +111,45 @@ export async function deletePhysicalComponent(id: string): Promise<void> {
   await prisma.physicalComponent.delete({ where: { id } });
 }
 
+export async function updatePhysicalComponent(
+  id: string,
+  patch: {
+    name?: string;
+    kind?: PhysicalKind;
+    host?: PhysicalHost;
+    vendor?: string | null;
+    description?: string | null;
+    logicalComponentId?: string | null;
+  },
+): Promise<PhysicalComponent> {
+  const data: Record<string, unknown> = {};
+  if (patch.name !== undefined) {
+    const trimmed = patch.name.trim();
+    if (!trimmed) throw new Error("Name cannot be empty.");
+    if (trimmed.length > 80)
+      throw new Error("Name must be 80 characters or fewer.");
+    data.name = trimmed;
+  }
+  if (patch.kind !== undefined) data.kind = patch.kind;
+  if (patch.host !== undefined) data.host = patch.host;
+  if (patch.vendor !== undefined) {
+    const trimmed = patch.vendor?.trim() ?? "";
+    data.vendor = trimmed || null;
+  }
+  if (patch.description !== undefined) {
+    const trimmed = patch.description?.trim() ?? "";
+    data.description = trimmed || null;
+  }
+  if (patch.logicalComponentId !== undefined) {
+    data.logicalComponentId = patch.logicalComponentId || null;
+  }
+  const row = await prisma.physicalComponent.update({
+    where: { id },
+    data,
+  });
+  return toComponent(row);
+}
+
 export async function createPhysicalDependency(input: {
   from: string;
   to: string;

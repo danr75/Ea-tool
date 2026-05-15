@@ -6,6 +6,7 @@ import {
   createPhysicalDependency,
   deletePhysicalComponent,
   deletePhysicalDependency,
+  updatePhysicalComponent,
 } from "@/lib/db/physical";
 import type {
   PhysicalComponent,
@@ -37,6 +38,26 @@ export async function addPhysicalComponent(input: {
     return { ok: true, component };
   } catch (e) {
     return err(e, "Failed to add component.");
+  }
+}
+
+export async function savePhysicalComponent(
+  id: string,
+  patch: {
+    name?: string;
+    kind?: PhysicalKind;
+    host?: PhysicalHost;
+    vendor?: string | null;
+    description?: string | null;
+    logicalComponentId?: string | null;
+  },
+): Promise<Ok<{ component: PhysicalComponent }> | Err> {
+  try {
+    const component = await updatePhysicalComponent(id, patch);
+    revalidatePath("/architecture");
+    return { ok: true, component };
+  } catch (e) {
+    return err(e, "Failed to save component.");
   }
 }
 
