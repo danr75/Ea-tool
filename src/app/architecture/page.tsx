@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Sparkles } from "lucide-react";
 import type { AppMode, MaturityLevel, ViewLevel } from "@/lib/types";
@@ -20,8 +20,15 @@ import {
 import { DomainColumn } from "@/components/conceptual/DomainColumn";
 import { CapabilityDetail } from "@/components/conceptual/CapabilityDetail";
 import { LogicalView } from "@/components/logical/LogicalView";
+import { TransformationView } from "@/components/transformation/TransformationView";
 
 const VALID_VIEWS: ViewLevel[] = ["conceptual", "logical", "physical"];
+const VALID_MODES: AppMode[] = [
+  "executive",
+  "architect",
+  "transformation",
+  "ai-evolution",
+];
 
 export default function ArchitecturePage() {
   return (
@@ -39,15 +46,28 @@ function ArchitecturePageInner() {
   const view: ViewLevel = VALID_VIEWS.includes(viewParam ?? "conceptual" as ViewLevel)
     ? (viewParam ?? "conceptual")
     : "conceptual";
+  const modeParam = searchParams.get("mode") as AppMode | null;
+  const mode: AppMode = VALID_MODES.includes(modeParam ?? "executive" as AppMode)
+    ? (modeParam ?? "executive")
+    : "executive";
+  const overlayParam = searchParams.get("overlay") as Overlay | null;
+  const overlay: Overlay =
+    overlayParam === "none" || overlayParam === "maturity" || overlayParam === "emerging"
+      ? overlayParam
+      : "emerging";
   const selectedId = searchParams.get("capability");
 
-  const [mode, setMode] = useState<AppMode>("executive");
-  const [overlay, setOverlay] = useState<Overlay>("emerging");
-
   const setQuery = useCallback(
-    (updates: { view?: ViewLevel; capability?: string | null }) => {
+    (updates: {
+      view?: ViewLevel;
+      capability?: string | null;
+      mode?: AppMode;
+      overlay?: Overlay;
+    }) => {
       const params = new URLSearchParams(searchParams.toString());
       if (updates.view !== undefined) params.set("view", updates.view);
+      if (updates.mode !== undefined) params.set("mode", updates.mode);
+      if (updates.overlay !== undefined) params.set("overlay", updates.overlay);
       if (updates.capability !== undefined) {
         if (updates.capability === null) params.delete("capability");
         else params.set("capability", updates.capability);
@@ -62,6 +82,14 @@ function ArchitecturePageInner() {
 
   const setView = useCallback(
     (v: ViewLevel) => setQuery({ view: v }),
+    [setQuery],
+  );
+  const setMode = useCallback(
+    (m: AppMode) => setQuery({ mode: m }),
+    [setQuery],
+  );
+  const setOverlay = useCallback(
+    (o: Overlay) => setQuery({ overlay: o }),
     [setQuery],
   );
   const setSelectedId = useCallback(
@@ -87,60 +115,82 @@ function ArchitecturePageInner() {
 
   const impactedTotal = Object.keys(emergingByCapability).length;
 
+  const isTransformation = mode === "transformation";
+
+  const headerCopy = isTransformation
+    ? {
+        eyebrow: "Architecture · transformation",
+        title: "Transformation planning",
+        body: "Current state to future state, sequenced by adoption horizon and prioritised by capability impact. Independent of the view — the transformation lens is applied across the whole architecture.",
+      }
+    : {
+        eyebrow: `Architecture · ${view}`,
+        title:
+          view === "conceptual"
+            ? "Capability landscape"
+            : view === "logical"
+              ? "Logical architecture"
+              : "Physical architecture",
+        body:
+          view === "conceptual"
+            ? "The capabilities that run the enterprise, grouped by domain. Pick a capability and drill into its logical view to see how it's actually implemented."
+            : "Services, platforms, data stores and policy points that implement each capability — plus the cross-capability dependencies between them.",
+      };
+
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-end gap-6 justify-between">
         <div className="space-y-2 max-w-2xl">
           <span className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-ink-400">
-            Architecture · {view}
+            {headerCopy.eyebrow}
           </span>
           <h1 className="text-3xl font-semibold tracking-tight text-ink-900">
-            {view === "conceptual"
-              ? "Capability landscape"
-              : view === "logical"
-                ? "Logical architecture"
-                : "Physical architecture"}
+            {headerCopy.title}
           </h1>
           <p className="text-sm text-ink-500 leading-relaxed">
-            {view === "conceptual"
-              ? "The capabilities that run the enterprise, grouped by domain. Pick a capability and drill into its logical view to see how it's actually implemented."
-              : "Services, platforms, data stores and policy points that implement each capability — plus the cross-capability dependencies between them."}
+            {headerCopy.body}
           </p>
         </div>
         <div className="flex flex-wrap items-end gap-3">
-          <ViewSwitcher value={view} onChange={setView} />
+          {!isTransformation && (
+            <ViewSwitcher value={view} onChange={setView} />
+          )}
           <ModeSwitcher value={mode} onChange={setMode} />
-          {view === "conceptual" && (
+          {!isTransformation && view === "conceptual" && (
             <OverlayToggle value={overlay} onChange={setOverlay} />
           )}
         </div>
       </header>
 
-      {view === "conceptual" && (
-        <ConceptualView
-          overlay={overlay}
-          selectedId={selectedId}
-          impactedTotal={impactedTotal}
-          capsByDomain={capsByDomain}
-          emergingByCapability={emergingByCapability}
-          onSelect={setSelectedId}
-          onDrillIntoLogical={(id) =>
-            setQuery({ view: "logical", capability: id })
-          }
-        />
-      )}
+      {isTransformation ? (
+        <TransformationView />
+      ) : (
+        <>
+          {view === "conceptual" && (
+            <ConceptualView
+              overlay={overlay}
+              selectedId={selectedId}
+              impactedTotal={impactedTotal}
+              capsByDomain={capsByDomain}
+              emergingByCapability={emergingByCapability}
+              onSelect={setSelectedId}
+              onDrillIntoLogical={(id) =>
+                setQuery({ view: "logical", capability: id })
+              }
+            />
+          )}
 
-      {view === "logical" && (
-        <LogicalView
-          capabilityId={selectedId}
-          onPickCapability={(id) => setSelectedId(id)}
-          onBackToConceptual={() =>
-            setQuery({ view: "conceptual" })
-          }
-        />
-      )}
+          {view === "logical" && (
+            <LogicalView
+              capabilityId={selectedId}
+              onPickCapability={(id) => setSelectedId(id)}
+              onBackToConceptual={() => setQuery({ view: "conceptual" })}
+            />
+          )}
 
-      {view === "physical" && <PhysicalPlaceholder />}
+          {view === "physical" && <PhysicalPlaceholder />}
+        </>
+      )}
     </div>
   );
 }
