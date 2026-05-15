@@ -10,6 +10,7 @@ import { domainsById } from "@/data/domains";
 import { useArchitectureData } from "@/components/ArchitectureDataProvider";
 import { PhysicalGraph } from "./PhysicalGraph";
 import { physicalHostMeta, physicalKindMeta } from "./PhysicalNode";
+import { PhysicalEditor } from "./PhysicalEditor";
 
 function partitionDeps(
   deps: PhysicalDependency[],
@@ -42,7 +43,12 @@ export function PhysicalView({
     physicalComponents,
     physicalDependencies,
     capabilitiesWithPhysical,
+    logicalComponents,
   } = useArchitectureData();
+
+  const logicalForCapability = capabilityId
+    ? logicalComponents.filter((l) => l.capabilityId === capabilityId)
+    : [];
 
   if (!capabilityId) {
     return (
@@ -72,18 +78,6 @@ export function PhysicalView({
     physicalDependencies,
     componentIds,
   );
-
-  if (components.length === 0) {
-    return (
-      <NoPhysicalContent
-        capability={cap}
-        onPick={onPickCapability}
-        onBack={onBackToConceptual}
-        capabilitiesWithPhysical={capabilitiesWithPhysical}
-        capabilitiesById={capabilitiesById}
-      />
-    );
-  }
 
   const allDeps = [...internal, ...incoming, ...outgoing];
   const neighbourIds = new Set<string>();
@@ -143,10 +137,27 @@ export function PhysicalView({
 
       <Legend />
 
-      <PhysicalGraph
-        components={allComponents}
-        dependencies={allDeps}
-        selectedCapabilityId={capabilityId}
+      {components.length > 0 ? (
+        <PhysicalGraph
+          components={allComponents}
+          dependencies={allDeps}
+          selectedCapabilityId={capabilityId}
+        />
+      ) : (
+        <div className="bg-white rounded-2xl ring-1 ring-dashed ring-ink-200 p-10 text-center">
+          <p className="text-sm text-ink-500">
+            No physical components yet for{" "}
+            <span className="font-medium text-ink-900">{cap.name}</span>. Add
+            one below to start the graph.
+          </p>
+        </div>
+      )}
+
+      <PhysicalEditor
+        capabilityId={capabilityId}
+        components={components}
+        dependencies={physicalDependencies}
+        logicalForCapability={logicalForCapability}
       />
     </div>
   );
