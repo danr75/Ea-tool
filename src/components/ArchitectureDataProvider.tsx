@@ -38,10 +38,12 @@ export interface ArchitectureData {
   addRelationship: (r: Relationship) => void;
   removeRelationship: (from: string, to: string, kind: string) => void;
   addLogicalComponent: (c: LogicalComponent) => void;
+  updateLogicalComponent: (c: LogicalComponent) => void;
   removeLogicalComponent: (id: string) => void;
   addLogicalFlow: (f: LogicalFlow) => void;
   removeLogicalFlow: (from: string, to: string, kind: string) => void;
   addPhysicalComponent: (c: PhysicalComponent) => void;
+  updatePhysicalComponent: (c: PhysicalComponent) => void;
   removePhysicalComponent: (id: string) => void;
   addPhysicalDependency: (d: PhysicalDependency) => void;
   removePhysicalDependency: (from: string, to: string, kind: string) => void;
@@ -116,6 +118,12 @@ export function ArchitectureDataProvider({
     setLogicalComponents((prev) => [...prev, c]);
   }, []);
 
+  const updateLogicalComponent = useCallback((c: LogicalComponent) => {
+    setLogicalComponents((prev) =>
+      prev.map((x) => (x.id === c.id ? c : x)),
+    );
+  }, []);
+
   const removeLogicalComponent = useCallback((id: string) => {
     setLogicalComponents((prev) => prev.filter((c) => c.id !== id));
     setLogicalFlows((prev) =>
@@ -140,6 +148,12 @@ export function ArchitectureDataProvider({
 
   const addPhysicalComponent = useCallback((c: PhysicalComponent) => {
     setPhysicalComponents((prev) => [...prev, c]);
+  }, []);
+
+  const updatePhysicalComponent = useCallback((c: PhysicalComponent) => {
+    setPhysicalComponents((prev) =>
+      prev.map((x) => (x.id === c.id ? c : x)),
+    );
   }, []);
 
   const removePhysicalComponent = useCallback((id: string) => {
@@ -199,10 +213,12 @@ export function ArchitectureDataProvider({
       addRelationship,
       removeRelationship,
       addLogicalComponent,
+      updateLogicalComponent,
       removeLogicalComponent,
       addLogicalFlow,
       removeLogicalFlow,
       addPhysicalComponent,
+      updatePhysicalComponent,
       removePhysicalComponent,
       addPhysicalDependency,
       removePhysicalDependency,
@@ -220,10 +236,12 @@ export function ArchitectureDataProvider({
     addRelationship,
     removeRelationship,
     addLogicalComponent,
+    updateLogicalComponent,
     removeLogicalComponent,
     addLogicalFlow,
     removeLogicalFlow,
     addPhysicalComponent,
+    updatePhysicalComponent,
     removePhysicalComponent,
     addPhysicalDependency,
     removePhysicalDependency,

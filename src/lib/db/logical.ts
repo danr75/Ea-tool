@@ -96,6 +96,34 @@ export async function deleteLogicalComponent(id: string): Promise<void> {
   await prisma.logicalComponent.delete({ where: { id } });
 }
 
+export async function updateLogicalComponent(
+  id: string,
+  patch: {
+    name?: string;
+    kind?: LogicalComponentKind;
+    description?: string | null;
+  },
+): Promise<LogicalComponent> {
+  const data: Record<string, unknown> = {};
+  if (patch.name !== undefined) {
+    const trimmed = patch.name.trim();
+    if (!trimmed) throw new Error("Name cannot be empty.");
+    if (trimmed.length > 80)
+      throw new Error("Name must be 80 characters or fewer.");
+    data.name = trimmed;
+  }
+  if (patch.kind !== undefined) data.kind = patch.kind;
+  if (patch.description !== undefined) {
+    const trimmed = patch.description?.trim() ?? "";
+    data.description = trimmed || null;
+  }
+  const row = await prisma.logicalComponent.update({
+    where: { id },
+    data,
+  });
+  return toComponent(row);
+}
+
 export async function createLogicalFlow(input: {
   from: string;
   to: string;

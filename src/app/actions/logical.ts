@@ -6,6 +6,7 @@ import {
   createLogicalFlow,
   deleteLogicalComponent,
   deleteLogicalFlow,
+  updateLogicalComponent,
 } from "@/lib/db/logical";
 import type {
   LogicalComponent,
@@ -33,6 +34,23 @@ export async function addLogicalComponent(input: {
     return { ok: true, component };
   } catch (e) {
     return err(e, "Failed to add component.");
+  }
+}
+
+export async function saveLogicalComponent(
+  id: string,
+  patch: {
+    name?: string;
+    kind?: LogicalComponentKind;
+    description?: string | null;
+  },
+): Promise<Ok<{ component: LogicalComponent }> | Err> {
+  try {
+    const component = await updateLogicalComponent(id, patch);
+    revalidatePath("/architecture");
+    return { ok: true, component };
+  } catch (e) {
+    return err(e, "Failed to save component.");
   }
 }
 
