@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { AdoptionHorizon, EmergingCapability } from "@/lib/types";
 
 const horizonColor: Record<AdoptionHorizon, string> = {
@@ -18,28 +18,77 @@ const horizonLabel: Record<AdoptionHorizon, string> = {
   watch: "Watch",
 };
 
-const W = 600;
-const H = 380;
-const M = { top: 28, right: 28, bottom: 40, left: 56 };
+const W = 760;
+const H = 440;
+const M = { top: 32, right: 40, bottom: 48, left: 64 };
 
-export function EmergingRadar({
-  items,
-}: {
-  items: EmergingCapability[];
-}) {
+type Placed = {
+  item: EmergingCapability;
+  cx: number;
+  cy: number;
+  r: number;
+  labelX: number;
+  labelY: number;
+  anchor: "start" | "end";
+};
+
+export function EmergingRadar({ items }: { items: EmergingCapability[] }) {
   const [hover, setHover] = useState<string | null>(null);
 
-  const xFor = (v: number) =>
-    M.left + v * (W - M.left - M.right);
-  const yFor = (v: number) =>
-    H - M.bottom - v * (H - M.top - M.bottom);
+  const placed: Placed[] = useMemo(() => {
+    const xFor = (v: number) => M.left + v * (W - M.left - M.right);
+    const yFor = (v: number) => H - M.bottom - v * (H - M.top - M.bottom);
+    const midX = (W - M.left - M.right) / 2 + M.left;
+
+    // First pass: positions and dot radius.
+    const initial = items.map((item) => {
+      const cx = xFor(item.likelihood);
+      const cy = yFor(item.impact);
+      const r = 7 + item.urgency * 9;
+      const onRight = cx > midX;
+      return {
+        item,
+        cx,
+        cy,
+        r,
+        anchor: (onRight ? "end" : "start") as "start" | "end",
+        labelX: onRight ? cx - r - 8 : cx + r + 8,
+        labelY: cy + 4,
+      };
+    });
+
+    // Second pass: simple greedy de-overlap of labels.
+    // Sort by y, then nudge any label that's within 18px of a previous one.
+    const sorted = [...initial].sort((a, b) => a.cy - b.cy);
+    const adjusted: Placed[] = [];
+    for (const p of sorted) {
+      let y = p.labelY;
+      // Only collide with labels on the same side.
+      const sameSide = adjusted.filter((q) => q.anchor === p.anchor);
+      // Find the closest label above with overlap; push this one down.
+      let collision = true;
+      let safety = 0;
+      while (collision && safety < 12) {
+        collision = false;
+        for (const q of sameSide) {
+          if (Math.abs(q.labelY - y) < 18 && Math.abs(q.cx - p.cx) < 220) {
+            y = q.labelY + 18;
+            collision = true;
+          }
+        }
+        safety += 1;
+      }
+      adjusted.push({ ...p, labelY: y });
+    }
+    return adjusted;
+  }, [items]);
 
   const gridX = [0.25, 0.5, 0.75];
   const gridY = [0.25, 0.5, 0.75];
 
   return (
     <div className="bg-white rounded-2xl ring-1 ring-ink-100 shadow-card p-5">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-start justify-between gap-4 mb-3 flex-wrap">
         <div>
           <h2 className="text-sm font-semibold text-ink-900">
             Likelihood × enterprise impact
@@ -74,118 +123,153 @@ export function EmergingRadar({
           fill="#f6f7fb"
           rx={10}
         />
-        {gridX.map((g) => (
-          <line
-            key={`gx-${g}`}
-            x1={xFor(g)}
-            x2={xFor(g)}
-            y1={M.top}
-            y2={H - M.bottom}
-            stroke="#e2e6f0"
-            strokeDasharray="3 3"
-          />
-        ))}
-        {gridY.map((g) => (
-          <line
-            key={`gy-${g}`}
-            x1={M.left}
-            x2={W - M.right}
-            y1={yFor(g)}
-            y2={yFor(g)}
-            stroke="#e2e6f0"
-            strokeDasharray="3 3"
-          />
-        ))}
-        {/* Axes */}
+        {gridX.map((g) => {
+          const x = M.left + g * (W - M.left - M.right);
+          return (
+            <line
+              key={`gx-${g}`}
+              x1={x}
+              x2={x}
+              y1={M.top}
+              y2={H - M.bottom}
+              stroke="#e2e6f0"
+              strokeDasharray="3 3"
+            />
+          );
+        })}
+        {gridY.map((g) => {
+          const y = H - M.bottom - g * (H - M.top - M.bottom);
+          return (
+            <line
+              key={`gy-${g}`}
+              x1={M.left}
+              x2={W - M.right}
+              y1={y}
+              y2={y}
+              stroke="#e2e6f0"
+              strokeDasharray="3 3"
+            />
+          );
+        })}
+
+        {/* Axis labels */}
         <text
-          x={M.left}
+          x={(M.left + W - M.right) / 2}
           y={H - 14}
-          fontSize={10}
+          fontSize={11}
           fill="#525a72"
           fontWeight={500}
+          textAnchor="middle"
         >
-          Likelihood →
+          Likelihood of adoption →
         </text>
         <text
-          transform={`rotate(-90 16 ${M.top + 60})`}
-          x={16}
-          y={M.top + 60}
-          fontSize={10}
+          transform={`rotate(-90 18 ${(M.top + H - M.bottom) / 2})`}
+          x={18}
+          y={(M.top + H - M.bottom) / 2}
+          fontSize={11}
           fill="#525a72"
           fontWeight={500}
+          textAnchor="middle"
         >
           Enterprise impact →
         </text>
-        {/* Quadrant labels */}
+
+        {/* Subtle quadrant hints in corners */}
         <text
-          x={W - M.right - 6}
-          y={M.top + 14}
+          x={W - M.right - 8}
+          y={M.top + 16}
           fontSize={10}
-          fill="#7d859e"
+          fill="#b1b8cc"
           textAnchor="end"
+          fontWeight={500}
         >
-          Strategic priorities
+          High impact · high likelihood
         </text>
         <text
-          x={M.left + 6}
-          y={H - M.bottom - 6}
+          x={M.left + 8}
+          y={H - M.bottom - 8}
           fontSize={10}
-          fill="#7d859e"
+          fill="#b1b8cc"
+          fontWeight={500}
         >
-          Background
+          Low impact · low likelihood
         </text>
-        {items.map((e) => {
-          const cx = xFor(e.likelihood);
-          const cy = yFor(e.impact);
-          const r = 6 + e.urgency * 10;
-          const fill = horizonColor[e.horizon];
-          const isHover = hover === e.id;
+
+        {/* Dots */}
+        {placed.map((p) => {
+          const isHover = hover === p.item.id;
+          const fill = horizonColor[p.item.horizon];
           return (
-            <Link key={e.id} href={`/emerging/${e.id}`}>
-              <g
-                onMouseEnter={() => setHover(e.id)}
-                onMouseLeave={() => setHover(null)}
-                className="cursor-pointer"
+            <g key={p.item.id}>
+              <Link href={`/emerging/${p.item.id}`}>
+                <g
+                  onMouseEnter={() => setHover(p.item.id)}
+                  onMouseLeave={() => setHover(null)}
+                  className="cursor-pointer"
+                >
+                  <circle
+                    cx={p.cx}
+                    cy={p.cy}
+                    r={p.r + 5}
+                    fill={fill}
+                    opacity={isHover ? 0.22 : 0.1}
+                  />
+                  <circle
+                    cx={p.cx}
+                    cy={p.cy}
+                    r={p.r}
+                    fill={fill}
+                    opacity={0.92}
+                    stroke="white"
+                    strokeWidth={1.8}
+                  />
+                </g>
+              </Link>
+            </g>
+          );
+        })}
+
+        {/* Labels rendered after dots so they sit on top */}
+        {placed.map((p) => {
+          const isHover = hover === p.item.id;
+          const text = p.item.name;
+          const padX = 6;
+          const padY = 3;
+          const charW = 6.2;
+          const textW = Math.max(40, text.length * charW);
+          const boxW = textW + padX * 2;
+          const boxH = 18;
+          const boxX = p.anchor === "end" ? p.labelX - boxW : p.labelX;
+          const boxY = p.labelY - boxH / 2 - 1;
+          return (
+            <g
+              key={`label-${p.item.id}`}
+              onMouseEnter={() => setHover(p.item.id)}
+              onMouseLeave={() => setHover(null)}
+              style={{ pointerEvents: "none" }}
+            >
+              <rect
+                x={boxX}
+                y={boxY}
+                width={boxW}
+                height={boxH}
+                rx={5}
+                fill={isHover ? "#171b27" : "white"}
+                stroke={isHover ? "#171b27" : "#e2e6f0"}
+                strokeWidth={1}
+              />
+              <text
+                x={p.anchor === "end" ? p.labelX - padX : p.labelX + padX}
+                y={p.labelY + 3}
+                fontSize={11}
+                fontWeight={500}
+                fill={isHover ? "white" : "#252a3a"}
+                textAnchor={p.anchor}
               >
-                <circle
-                  cx={cx}
-                  cy={cy}
-                  r={r + 4}
-                  fill={fill}
-                  opacity={isHover ? 0.18 : 0.1}
-                />
-                <circle
-                  cx={cx}
-                  cy={cy}
-                  r={r}
-                  fill={fill}
-                  opacity={0.9}
-                  stroke="white"
-                  strokeWidth={1.5}
-                />
-                {isHover && (
-                  <g>
-                    <rect
-                      x={cx + r + 6}
-                      y={cy - 14}
-                      width={Math.max(80, e.name.length * 6.4)}
-                      height={22}
-                      rx={6}
-                      fill="#171b27"
-                    />
-                    <text
-                      x={cx + r + 14}
-                      y={cy + 1}
-                      fontSize={11}
-                      fill="white"
-                      fontWeight={500}
-                    >
-                      {e.name}
-                    </text>
-                  </g>
-                )}
-              </g>
-            </Link>
+                {text}
+              </text>
+            </g>
           );
         })}
       </svg>
