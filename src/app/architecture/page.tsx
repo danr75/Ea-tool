@@ -9,6 +9,7 @@ import { domains } from "@/data/domains";
 import { emergingCapabilities } from "@/data/emerging";
 import { relationships } from "@/data/relationships";
 import { capabilitiesWithLogical } from "@/data/logical";
+import { capabilitiesWithPhysical } from "@/data/physical";
 import { maturityLabel } from "@/lib/format";
 import { ModeSwitcher } from "@/components/shell/ModeSwitcher";
 import { ViewSwitcher } from "@/components/shell/ViewSwitcher";
@@ -20,6 +21,7 @@ import {
 import { DomainColumn } from "@/components/conceptual/DomainColumn";
 import { CapabilityDetail } from "@/components/conceptual/CapabilityDetail";
 import { LogicalView } from "@/components/logical/LogicalView";
+import { PhysicalView } from "@/components/physical/PhysicalView";
 import { TransformationView } from "@/components/transformation/TransformationView";
 
 const VALID_VIEWS: ViewLevel[] = ["conceptual", "logical", "physical"];
@@ -177,6 +179,9 @@ function ArchitecturePageInner() {
               onDrillIntoLogical={(id) =>
                 setQuery({ view: "logical", capability: id })
               }
+              onDrillIntoPhysical={(id) =>
+                setQuery({ view: "physical", capability: id })
+              }
             />
           )}
 
@@ -188,7 +193,13 @@ function ArchitecturePageInner() {
             />
           )}
 
-          {view === "physical" && <PhysicalPlaceholder />}
+          {view === "physical" && (
+            <PhysicalView
+              capabilityId={selectedId}
+              onPickCapability={(id) => setSelectedId(id)}
+              onBackToConceptual={() => setQuery({ view: "conceptual" })}
+            />
+          )}
         </>
       )}
     </div>
@@ -203,6 +214,7 @@ function ConceptualView({
   emergingByCapability,
   onSelect,
   onDrillIntoLogical,
+  onDrillIntoPhysical,
 }: {
   overlay: Overlay;
   selectedId: string | null;
@@ -211,6 +223,7 @@ function ConceptualView({
   emergingByCapability: Record<string, typeof emergingCapabilities>;
   onSelect: (id: string | null) => void;
   onDrillIntoLogical: (id: string) => void;
+  onDrillIntoPhysical: (id: string) => void;
 }) {
   const selected = selectedId
     ? capabilities.find((c) => c.id === selectedId) ?? null
@@ -227,6 +240,9 @@ function ConceptualView({
     : [];
   const hasLogical = selected
     ? capabilitiesWithLogical.includes(selected.id)
+    : false;
+  const hasPhysical = selected
+    ? capabilitiesWithPhysical.includes(selected.id)
     : false;
 
   return (
@@ -257,27 +273,46 @@ function ConceptualView({
                 emerging={selectedEmerging}
                 onClose={() => onSelect(null)}
               />
-              <button
-                type="button"
-                onClick={() => onDrillIntoLogical(selected.id)}
-                disabled={!hasLogical}
-                className={[
-                  "w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-all",
-                  hasLogical
-                    ? "bg-ink-900 text-white hover:bg-ink-800 shadow-card"
-                    : "bg-ink-100 text-ink-400 cursor-not-allowed",
-                ].join(" ")}
-                title={
-                  hasLogical
-                    ? "Open this capability at the logical layer"
-                    : "Logical view not authored for this capability in the slice"
-                }
-              >
-                {hasLogical
-                  ? "Open in logical view"
-                  : "Logical view not yet authored"}
-                {hasLogical && <ArrowRight size={14} />}
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => onDrillIntoLogical(selected.id)}
+                  disabled={!hasLogical}
+                  className={[
+                    "inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
+                    hasLogical
+                      ? "bg-ink-900 text-white hover:bg-ink-800 shadow-card"
+                      : "bg-ink-100 text-ink-400 cursor-not-allowed",
+                  ].join(" ")}
+                  title={
+                    hasLogical
+                      ? "Open at the logical layer"
+                      : "Logical view not authored for this capability"
+                  }
+                >
+                  Logical
+                  {hasLogical && <ArrowRight size={14} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDrillIntoPhysical(selected.id)}
+                  disabled={!hasPhysical}
+                  className={[
+                    "inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
+                    hasPhysical
+                      ? "bg-ink-900 text-white hover:bg-ink-800 shadow-card"
+                      : "bg-ink-100 text-ink-400 cursor-not-allowed",
+                  ].join(" ")}
+                  title={
+                    hasPhysical
+                      ? "Open at the physical layer"
+                      : "Physical view not authored for this capability"
+                  }
+                >
+                  Physical
+                  {hasPhysical && <ArrowRight size={14} />}
+                </button>
+              </div>
             </>
           ) : (
             <EmptyDetail />
@@ -299,21 +334,6 @@ function EmptyDetail() {
         signals reshaping it.
       </p>
     </aside>
-  );
-}
-
-function PhysicalPlaceholder() {
-  return (
-    <div className="bg-white rounded-2xl ring-1 ring-dashed ring-ink-200 p-10 max-w-3xl text-center mx-auto">
-      <span className="text-[11px] uppercase tracking-[0.14em] text-ink-400 font-medium">
-        Physical view
-      </span>
-      <h2 className="mt-2 text-lg font-semibold text-ink-900">Coming in the next slice</h2>
-      <p className="mt-2 text-sm text-ink-500 max-w-md mx-auto leading-relaxed">
-        The physical layer will show where workloads actually run — cloud
-        environments, SaaS platforms, networks and devices.
-      </p>
-    </div>
   );
 }
 

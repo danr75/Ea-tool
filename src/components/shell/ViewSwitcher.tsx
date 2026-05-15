@@ -24,7 +24,7 @@ const views: {
     id: "physical",
     label: "Physical",
     hint: "Platforms, infrastructure, tooling",
-    available: false,
+    available: true,
   },
 ];
 

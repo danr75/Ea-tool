@@ -90,6 +90,51 @@ export interface LogicalFlow {
   label?: string;
 }
 
+export type PhysicalHost =
+  | "aws"
+  | "azure"
+  | "gcp"
+  | "saas"
+  | "on-prem"
+  | "edge";
+
+export type PhysicalKind =
+  | "compute"
+  | "datastore"
+  | "platform"
+  | "saas-app"
+  | "gateway"
+  | "messaging"
+  | "security"
+  | "device";
+
+export interface PhysicalComponent {
+  id: string;
+  capabilityId: string;
+  logicalComponentId?: string;
+  name: string;
+  vendor?: string;
+  kind: PhysicalKind;
+  host: PhysicalHost;
+  description?: string;
+}
+
+export type PhysicalDependencyKind =
+  | "calls"
+  | "reads"
+  | "writes"
+  | "publishes"
+  | "consumes"
+  | "secures"
+  | "hosts";
+
+export interface PhysicalDependency {
+  from: string;
+  to: string;
+  kind: PhysicalDependencyKind;
+  label?: string;
+}
+
 export interface EmergingCapability {
   id: string;
   name: string;
