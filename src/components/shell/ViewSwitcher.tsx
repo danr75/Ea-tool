@@ -18,7 +18,7 @@ const views: {
     id: "logical",
     label: "Logical",
     hint: "Services, flows and interactions",
-    available: false,
+    available: true,
   },
   {
     id: "physical",

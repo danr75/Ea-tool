@@ -59,6 +59,37 @@ export interface CapabilityImpact {
   note: string;
 }
 
+export type LogicalComponentKind =
+  | "service"
+  | "platform"
+  | "datastore"
+  | "interface"
+  | "external"
+  | "policy";
+
+export interface LogicalComponent {
+  id: string;
+  capabilityId: string;
+  name: string;
+  kind: LogicalComponentKind;
+  description?: string;
+}
+
+export type LogicalFlowKind =
+  | "calls"
+  | "publishes"
+  | "consumes"
+  | "reads"
+  | "writes"
+  | "enforces";
+
+export interface LogicalFlow {
+  from: string;
+  to: string;
+  kind: LogicalFlowKind;
+  label?: string;
+}
+
 export interface EmergingCapability {
   id: string;
   name: string;
