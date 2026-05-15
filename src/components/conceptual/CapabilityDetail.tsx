@@ -17,6 +17,7 @@ import {
   relationshipLabel,
 } from "@/lib/format";
 import { MaturityDot } from "./MaturityDot";
+import { EditableSummary } from "./EditableSummary";
 
 export function CapabilityDetail({
   capability,
@@ -24,12 +25,14 @@ export function CapabilityDetail({
   incoming,
   emerging,
   onClose,
+  onCapabilityUpdated,
 }: {
   capability: Capability;
   outgoing: Relationship[];
   incoming: Relationship[];
   emerging: EmergingCapability[];
   onClose: () => void;
+  onCapabilityUpdated?: (c: Capability) => void;
 }) {
   const domain = domainsById[capability.domain];
   return (
@@ -53,9 +56,10 @@ export function CapabilityDetail({
         <h2 className="mt-2 text-xl font-semibold text-ink-900 pr-8 leading-tight">
           {capability.name}
         </h2>
-        <p className="mt-2 text-sm text-ink-500 leading-relaxed">
-          {capability.summary}
-        </p>
+        <EditableSummary
+          capability={capability}
+          onCapabilityUpdated={onCapabilityUpdated}
+        />
         <dl className="mt-4 grid grid-cols-3 gap-3 text-[11px]">
           <div>
             <dt className="text-ink-400 font-medium uppercase tracking-wider">

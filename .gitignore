@@ -11,3 +11,7 @@ dist
 next-env.d.ts
 .tsbuildinfo
 tsconfig.tsbuildinfo
+
+# Local SQLite database (dev only — Postgres in production)
+/prisma/dev.db
+/prisma/dev.db-journal

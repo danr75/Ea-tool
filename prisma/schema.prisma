@@ -1,0 +1,27 @@
+// Prisma schema for the Enterprise Architecture Intelligence Platform.
+// Capabilities are migrated to the database first as the foundational
+// editable entity. Other entity types (relationships, emerging signals,
+// logical and physical components) remain seeded from TypeScript files
+// until a clear authoring need warrants moving them here.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Capability {
+  id        String   @id
+  domain    String
+  name      String
+  summary   String
+  maturity  String
+  reuse     Float
+  ownership String?
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
