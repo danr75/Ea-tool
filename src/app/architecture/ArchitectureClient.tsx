@@ -65,6 +65,27 @@ function ArchitectureClientInner({
     );
   }, []);
 
+  const handleCapabilityCreated = useCallback((created: Capability) => {
+    setCapabilities((prev) => [...prev, created]);
+  }, []);
+
+  const handleCapabilityDeleted = useCallback(
+    (deletedId: string) => {
+      setCapabilities((prev) => prev.filter((c) => c.id !== deletedId));
+      // If the deleted capability is currently selected, clear it.
+      const current = searchParams.get("capability");
+      if (current === deletedId) {
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete("capability");
+        const qs = params.toString();
+        router.replace(qs ? `/architecture?${qs}` : "/architecture", {
+          scroll: false,
+        });
+      }
+    },
+    [router, searchParams],
+  );
+
   const viewParam = searchParams.get("view") as ViewLevel | null;
   const view: ViewLevel = VALID_VIEWS.includes(viewParam ?? "conceptual" as ViewLevel)
     ? (viewParam ?? "conceptual")
@@ -215,6 +236,11 @@ function ArchitectureClientInner({
                 setQuery({ view: "physical", capability: id })
               }
               onCapabilityUpdated={handleCapabilityUpdated}
+              onCapabilityCreated={(c) => {
+                handleCapabilityCreated(c);
+                setSelectedId(c.id);
+              }}
+              onCapabilityDeleted={handleCapabilityDeleted}
             />
           )}
 
@@ -250,6 +276,8 @@ function ConceptualView({
   onDrillIntoLogical,
   onDrillIntoPhysical,
   onCapabilityUpdated,
+  onCapabilityCreated,
+  onCapabilityDeleted,
 }: {
   capabilities: Capability[];
   overlay: Overlay;
@@ -261,6 +289,8 @@ function ConceptualView({
   onDrillIntoLogical: (id: string) => void;
   onDrillIntoPhysical: (id: string) => void;
   onCapabilityUpdated: (c: Capability) => void;
+  onCapabilityCreated: (c: Capability) => void;
+  onCapabilityDeleted: (id: string) => void;
 }) {
   const selected = selectedId
     ? capabilities.find((c) => c.id === selectedId) ?? null
@@ -301,6 +331,7 @@ function ConceptualView({
               emergingByCapability={emergingByCapability}
               overlay={overlay}
               onSelect={onSelect}
+              onCapabilityCreated={onCapabilityCreated}
             />
           ))}
         </div>
@@ -314,6 +345,7 @@ function ConceptualView({
                 emerging={selectedEmerging}
                 onClose={() => onSelect(null)}
                 onCapabilityUpdated={onCapabilityUpdated}
+                onCapabilityDeleted={onCapabilityDeleted}
               />
               <div className="grid grid-cols-2 gap-2">
                 <button

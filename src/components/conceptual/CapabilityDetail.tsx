@@ -16,8 +16,10 @@ import {
   percent,
   relationshipLabel,
 } from "@/lib/format";
-import { MaturityDot } from "./MaturityDot";
 import { EditableSummary } from "./EditableSummary";
+import { EditableMaturity } from "./EditableMaturity";
+import { EditableOwnership } from "./EditableOwnership";
+import { DeleteCapabilityButton } from "./DeleteCapabilityButton";
 
 export function CapabilityDetail({
   capability,
@@ -26,6 +28,7 @@ export function CapabilityDetail({
   emerging,
   onClose,
   onCapabilityUpdated,
+  onCapabilityDeleted,
 }: {
   capability: Capability;
   outgoing: Relationship[];
@@ -33,6 +36,7 @@ export function CapabilityDetail({
   emerging: EmergingCapability[];
   onClose: () => void;
   onCapabilityUpdated?: (c: Capability) => void;
+  onCapabilityDeleted?: (id: string) => void;
 }) {
   const domain = domainsById[capability.domain];
   return (
@@ -65,9 +69,11 @@ export function CapabilityDetail({
             <dt className="text-ink-400 font-medium uppercase tracking-wider">
               Maturity
             </dt>
-            <dd className="mt-1 flex items-center gap-1.5 text-ink-900 font-medium">
-              <MaturityDot level={capability.maturity} />
-              {maturityLabel[capability.maturity]}
+            <dd className="mt-1 -ml-1.5">
+              <EditableMaturity
+                capability={capability}
+                onCapabilityUpdated={onCapabilityUpdated}
+              />
             </dd>
           </div>
           <div>
@@ -78,12 +84,15 @@ export function CapabilityDetail({
               {percent(capability.reuse)}
             </dd>
           </div>
-          <div>
+          <div className="min-w-0">
             <dt className="text-ink-400 font-medium uppercase tracking-wider">
               Owner
             </dt>
-            <dd className="mt-1 text-ink-900 font-medium truncate">
-              {capability.ownership ?? "—"}
+            <dd className="mt-1 truncate">
+              <EditableOwnership
+                capability={capability}
+                onCapabilityUpdated={onCapabilityUpdated}
+              />
             </dd>
           </div>
         </dl>
@@ -143,6 +152,16 @@ export function CapabilityDetail({
           getOther={(r) => r.from}
           arrow="←"
         />
+
+        {onCapabilityDeleted && (
+          <div className="pt-3 border-t border-ink-100">
+            <DeleteCapabilityButton
+              capabilityId={capability.id}
+              capabilityName={capability.name}
+              onDeleted={onCapabilityDeleted}
+            />
+          </div>
+        )}
       </div>
     </aside>
   );
